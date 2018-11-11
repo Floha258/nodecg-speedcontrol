@@ -19,6 +19,8 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 	
 	nodecg.log.info('Tiltify integration is enabled.');
 	var donationTotal = nodecg.Replicant('tiltifyDonationTotal', {persistent:false, defaultValue:0});
+        var polls = nodecg.Replicant('tiltifyPolls', {persistent:false, defaultValue:[]});
+        var incentives = nodecg.Replicant('tiltifyIncentives', {persistent:false, defaultValue:[]});
 	requestOptions.headers['Authorization'] = 'Bearer '+nodecg.bundleConfig.tiltify.token;
 	
 	// Do the initial request, which also checks if the key is valid.
@@ -49,4 +51,27 @@ function getDonationTotal(data) {
 	// Update the donation total replicant if it has actually changed.
 	if (donationTotal.value !== data.amountRaised)
 		donationTotal.value = data.amountRaised;
+}
+
+function reqPolls() {
+        needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/polls', requestOptions, (err, resp) => {
+                if (!err && resp.statusCode === 200)
+                        getPolls(resp.body.data);
+        });
+}
+        
+function getPolls(data) {
+        if (polls != data)
+                polls = data;
+}
+
+function reqIncentives() {
+        needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/challenges', requestOptions, (err, resp) => {
+                if(!err && resp.statusCode === 200)
+                        getPolls(resp.body.data);
+        });
+        
+function getIncentives(data) {
+        if (incentives != data)
+                incentives = data;
 }
