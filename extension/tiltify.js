@@ -2,11 +2,16 @@
 var needle = require('needle');
 var nodecg = require('./utils/nodecg-api-context').get();
 
+const Pusher = require('pusher-js');
+
 var requestOptions = {
 	headers: {
 		'Authorization': ''
 	}
 };
+// Static constants from the proprietary tiltify api
+const tiltifyApiKey = "c0b88d914287a2f4ee32";
+const tiltifyCluster = "mt1";
 
 if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.tiltify.enable) {
 	if (!nodecg.bundleConfig.tiltify.token)
@@ -18,9 +23,11 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 		return;
 	
 	nodecg.log.info('Tiltify integration is enabled.');
+
 	var donationTotal = nodecg.Replicant('tiltifyDonationTotal', {persistent:false, defaultValue:0});
         var polls = nodecg.Replicant('tiltifyPolls', {persistent:false, defaultValue:[]});
-        var incentives = nodecg.Replicant('tiltifyIncentives', {persistent:false, defaultValue:[]});
+	var incentives = nodecg.Replicant('tiltifyIncentives', {persistent:false, defaultValue:[]});
+	var donations = nodecg.Replicant('tiltifyDonations', {persistent:false, defaultValue:[]});
 	requestOptions.headers['Authorization'] = 'Bearer '+nodecg.bundleConfig.tiltify.token;
 	
 	// Do the initial request, which also checks if the key is valid.
@@ -35,43 +42,80 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 			return;
 		}
 		
-		getDonationTotal(resp.body.data);
-		setInterval(getUpdates, 30000); // Checks every 30 seconds.
+		_processRawCampain(resp.body.data);
+		setUpPusher();
+		nodecg.listenFor('refreshTiltify', doUpdate);
 	});
 }
 
-function getUpdates() {
+function setUpPusher() {
+	var tiltifyPusher = new Pusher(tiltifyApiKey, {cluster: tiltifyCluster});
+	var channel = tiltifyPusher.subscribe("campaign."+nodecg.bundleConfig.tiltify.campaign);
+	channel.bind("donation", doUpdate);
+	channel.bind('campaign', _processRawCampain);
+}
+
+function doUpdate() {
+	nodecg.log.info('Updating tiltify stuff...');
+	reqCampain();
+	reqPolls();
+	reqChallenges();
+	reqDonations();
+}
+
+function reqCampain() {
 	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign, requestOptions, (err, resp) => {
 		if (!err && resp.statusCode === 200)
-			getDonationTotal(resp.body.data);
+			_processRawCampain(resp.body.data);
 	});
 }
 
-function getDonationTotal(data) {
+function _processRawCampain(data) {
 	// Update the donation total replicant if it has actually changed.
 	if (donationTotal.value !== data.amountRaised)
 		donationTotal.value = data.amountRaised;
 }
 
+function reqDonations() {
+	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+"/donations", requestOptions, (err, resp) => {
+		if (!err && resp.statusCode === 200)
+			_processRawDonations(resp.body.data);
+	});
+}
+
+function _processRawDonations(data) {
+	if (donations.value != data) {
+		donations.value = data;
+	}
+}
+
 function reqPolls() {
         needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/polls', requestOptions, (err, resp) => {
                 if (!err && resp.statusCode === 200)
-                        getPolls(resp.body.data);
+                        _processRawPolls(resp.body.data);
         });
-}
-        
-function getPolls(data) {
-        if (polls != data)
-                polls = data;
 }
 
-function reqIncentives() {
+/**
+ * Datastructure: TODO
+ */
+function _processRawPolls(data) {
+        if (polls.value != data)
+                polls.value = data;
+}
+
+function reqChallenges() {
         needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/challenges', requestOptions, (err, resp) => {
                 if(!err && resp.statusCode === 200)
-                        getPolls(resp.body.data);
+                        _processRawChallenges(resp.body.data);
         });
-        
-function getIncentives(data) {
-        if (incentives != data)
-                incentives = data;
+}
+
+/**
+ * Datastructure: {"type":"donation","data":{"id":1234,"amount":1,"name":"donatorname","comment":"Greetings from germany!",
+ * "completedAt":1541438000000,"pollOptionId":123,"sustained":false}}
+ */
+function _processRawChallenges(data) {
+        if (incentives.value != data)
+		incentives.value = data;
 }
