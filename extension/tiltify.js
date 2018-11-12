@@ -67,19 +67,24 @@ function reqCampain() {
 	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign, requestOptions, (err, resp) => {
 		if (!err && resp.statusCode === 200)
 			_processRawCampain(resp.body.data);
+		else
+			nodecg.log.error(err);
 	});
 }
 
 function _processRawCampain(data) {
 	// Update the donation total replicant if it has actually changed.
-	if (donationTotal.value !== data.amountRaised)
+	if (donationTotal.value != data.amountRaised)
 		donationTotal.value = data.amountRaised;
+		nodecg.log.info("Updating total to "+donationTotal.value);
 }
 
 function reqDonations() {
 	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+"/donations", requestOptions, (err, resp) => {
 		if (!err && resp.statusCode === 200)
 			_processRawDonations(resp.body.data);
+		else
+			nodecg.log.error(err);
 	});
 }
 
@@ -92,7 +97,9 @@ function _processRawDonations(data) {
 function reqPolls() {
         needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/polls', requestOptions, (err, resp) => {
                 if (!err && resp.statusCode === 200)
-                        _processRawPolls(resp.body.data);
+			_processRawPolls(resp.body.data);
+		else
+			nodecg.log.error(err);
         });
 }
 
@@ -108,6 +115,8 @@ function reqChallenges() {
         needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/challenges', requestOptions, (err, resp) => {
                 if(!err && resp.statusCode === 200)
                         _processRawChallenges(resp.body.data);
+		else
+			nodecg.log.error(err);
         });
 }
 

@@ -4,9 +4,25 @@
 		<script src="../bower_components/jquery/dist/jquery.js"></script>
 		<script src="TiltifyDashboard.js"></script>
 		<style>
+			div#donationContainer {
+				overflow-x: hidden;
+				overflow-y: scroll;
+				max-height: 250px;
+			}
+			.donation {
+				border: 1px solid;
+				margin: 2px 0;
+			}
+
+			.comment {
+				background: lightblue;
+			}
 		</style>
 	</head>
 	<body>
-		<button type="button" id="reloadTiltifyButton">Reoad Tiltify</button>
+		<div id="tiltifyDonationTotal"></div>
+		<button type="button" id="reloadTiltifyButton">Reload Tiltify</button>
+		<div id="donationContainer">
+		</div>
 	</body>
 </html>
