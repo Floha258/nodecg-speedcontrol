@@ -16,30 +16,14 @@ $(function() {
             // so all 4 players are always there just hidden, paused and muted maybe
             if (!playerList[i]) {
                 var twitchContainer = document.getElementById('twitch-player'+i);
-                if (stream.hidden) {
-                    $(twitchContainer).hide();
-                } else {
-                    $(twitchContainer).show();
-                }
                 if (!twitchContainer) {
-                    nodecg.log.info('Tried to set up twitch player '+i+' but player doesn\' exist in html!');
+                    // it's OK if a hidden stream has no html
+                    if (!stream.hidden) {
+                        nodecg.log.info('Tried to set up twitch player '+i+' but player doesn\' exist in html!');
+                    }
                     continue;
                 }
-                var playerOptions = {
-                    'channel':  stream.channel,
-                    'width':    stream.width,
-                    'height':   stream.height,
-                }
-                playerList[i] = new Twitch.Player(twitchContainer, playerOptions);
-                playerList[i].showPlayerControls(false);
-                playerList[i].setQuality(stream.quality);
-                playerList[i].setVolume(stream.volume);
-                playerList[i].setMuted(stream.muted);
-                if (stream.paused) {
-                    playerList[i].pause();
-                } else {
-                    playerList[i].play();
-                }
+                createTwitchPlayer(i);
             } else {
                 const oldStream = playerList[i];
                 if (stream.hidden) {
@@ -77,4 +61,39 @@ $(function() {
     });
     //     // register listeners to remotely control streams
     //     // refresh TODO
+    nodecg.listenFor('refreshStream',(id) => {
+        if (!playerList[id]) {
+            nodecg.log.console.warn("Stream with given ID doesn't exist, can't refresh");
+            return;
+        }
+        // delete old player
+        $('#twitch-player'+id).html('');
+        // and create new one
+        createTwitchPlayer(id);
+    })
+
+    function createTwitchPlayer(id) {
+        const stream = streams.value[id];
+        var twitchContainer = document.getElementById('twitch-player'+id);
+        if (stream.hidden) {
+            $(twitchContainer).hide();
+        } else {
+            $(twitchContainer).show();
+        }
+        var playerOptions = {
+            'channel':  stream.channel,
+            'width':    stream.width,
+            'height':   stream.height,
+        }
+        playerList[id] = new Twitch.Player(twitchContainer, playerOptions);
+        playerList[id].showPlayerControls(false);
+        playerList[id].setQuality(stream.quality);
+        playerList[id].setVolume(stream.volume);
+        playerList[id].setMuted(stream.muted);
+        if (stream.paused) {
+            playerList[id].pause();
+        } else {
+            playerList[id].play();
+        }
+    }
 });
