@@ -68,7 +68,9 @@ $(function() {
         for (var i in playerList) {
             playerList[i].setMuted(true);
         }
-        playerList[newChannel].setMuted(false);
+        if (playerList[newChannel]) {
+            playerList[newChannel].setMuted(false);
+        }
 
     });
     //     // register listeners to remotely control streams
