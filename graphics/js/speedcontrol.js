@@ -65,7 +65,6 @@ $(function () {
 		}
     });
 
-
     var teamIntervals = new Array();
     function setTeamData( runData ) {
       clearTimeouts();

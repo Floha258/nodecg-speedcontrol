@@ -1,10 +1,13 @@
 'use strict';
 $(function() {
+    // keeps track of which channel has sound, cause only one at a time can have sound, -1 is all muted
+    var soundOnTwitchStream = nodecg.Replicant('sound-on-twitch-stream', {'persistent':false,'defaultValue':-1});
+    // main control panel for streams
     var streams = nodecg.Replicant('twitch-streams', {'persistent':false,'defaultValue':[
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'paused':false,'hidden':true},
     ]});
     // streams.values is an array that consists of elements with the following attributes;
     // channel, width, height, quality, volume, muted, paused, hidden
@@ -37,9 +40,6 @@ $(function() {
                 if (oldStream.getVolume() != stream.volume) {
                     oldStream.setVolume(stream.volume);
                 }
-                if (oldStream.getMuted() != stream.muted) {
-                    oldStream.setMuted(stream.muted);
-                }
                 if (oldStream.getChannel() != stream.channel) {
                     oldStream.setChannel(stream.channel);
                 }
@@ -58,6 +58,18 @@ $(function() {
                 }
             }
         }
+    });
+
+    soundOnTwitchStream.on('change', (newChannel, oldChannel) => {
+        if (newChannel == oldChannel) {
+            return;
+        }
+        // mute all, then unmute the right one
+        for (var i in playerList) {
+            playerList[i].setMuted(true);
+        }
+        playerList[newChannel].setMuted(false);
+
     });
     //     // register listeners to remotely control streams
     //     // refresh TODO
@@ -89,7 +101,8 @@ $(function() {
         playerList[id].showPlayerControls(false);
         playerList[id].setQuality(stream.quality);
         playerList[id].setVolume(stream.volume);
-        playerList[id].setMuted(stream.muted);
+        // if this sound is not on mute
+        playerList[id].setMuted(id != soundOnTwitchStream.value);
         if (stream.paused) {
             playerList[id].pause();
         } else {

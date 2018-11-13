@@ -36,6 +36,13 @@ $(function () {
 			runPlayer_activeRunID = -1;
         }
     });
+
+    var streamsReplicant = nodecg.Replicant('twitch-streams', {'persistent':false,'defaultValue':[
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
+    ]});
 	
 	$('#resetMarathonButton').button();
 	$('#resetMarathonButton').click(() => {
@@ -233,7 +240,31 @@ $(function () {
         $('#' + runID + ".playerGroup").find('h3').addClass('ui-state-playing');
         $('#' + theNextGame.runID + ".playerGroup").find('h3').addClass('ui-state-playing-next');
         $("#runPlayerWindow").scrollTo($('#' + thePreviousGame.runID + ".playerGroup"), 500, {queue: false});
-        runDataActiveRunReplicant.value = runPlayer_activeRunObject;
+		runDataActiveRunReplicant.value = runPlayer_activeRunObject;
+		
+		// grab all runners
+		var index = 0;
+		for (index in runPlayer_activeRunObject.players) {
+			const curPlayerTwitch = runPlayer_activeRunObject.players[index].twitch;
+			if (!curPlayerTwitch || !curPlayerTwitch.uri) {
+				nodecg.log.error('Twitch name for player '+index+' missing!');
+				streamsReplicant.value[index].paused = true;
+				streamsReplicant.value[index].hidden = true;
+				continue;
+			}
+			const match = curPlayerTwitch.uri.match(/https?:\/\/www.twitch.tv\/(.*)/);
+			if (match && match[1]) {
+				streamsReplicant.value[index].channel = match[1];
+				streamsReplicant.value[index].hidden = false;
+			}
+		}
+		index++;
+		// hide/mute/stop all other streams
+		while (index < 4) {
+			streamsReplicant.value[index].paused = true;
+			streamsReplicant.value[index].hidden = true;
+			index++;
+		}
 
 
         if (syncGamePlayedToTwitch) {
