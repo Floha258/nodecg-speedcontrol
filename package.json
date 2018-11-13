@@ -24,7 +24,11 @@
   "license": "MIT",
   "nodecg": {
     "compatibleRange": "^1.0.0",
-    "graphics": [],
+    "graphics": [{
+      "file": "twitch-player-test.html",
+      "width": 500,
+      "height": 500
+    }],
     "dashboardPanels": [
       {
         "name": "run-player",
