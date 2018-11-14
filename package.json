@@ -26,8 +26,12 @@
     "compatibleRange": "^1.0.0",
     "graphics": [{
       "file": "twitch-player-test.html",
-      "width": 500,
-      "height": 500
+      "width": 1280,
+      "height": 720
+    },{
+      "file": "donation-dashboard.html",
+      "width": 1280,
+      "height": 720
     }],
     "dashboardPanels": [
       {

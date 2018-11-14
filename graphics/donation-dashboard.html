@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html data-sceneid="donation-dashboard">
+	<head>
+		<link href="css/common.css" rel="stylesheet"/>
+        <script src="../bower_components/jquery/dist/jquery.min.js"></script>
+        <script src= "donation-dashboard.js"></script>
+		<style>
+            td {
+                vertical-align: top;
+            }
+
+			div#donationContainer, div#pollContainer, div#challengeContainer {
+				overflow-x: hidden;
+				overflow-y: scroll;
+				max-height: 600px;
+			}
+
+			.donation, .poll, .challenge{
+				border: 1px solid;
+				margin: 2px 0;
+			}
+
+			.comment {
+				background: lightblue;
+			}
+
+            .no-comment {
+                font-style: italic;
+            }
+
+            .poll-name, .challenge-name {
+                background: lightblue;
+            }
+
+            .inactive {
+                font-style: italic;
+            }
+		</style>
+	</head>
+	<body>
+        <h2>Total donations: $<span id="donationTotal">0</span></h2>
+        <button id="new-donation" style="display: none">New Donation!</button>
+        <table>
+            <tr>
+                <td>
+                    <div id="donationContainer"></div>
+                </td>
+                <td>
+                    <div id="pollContainer"></div>
+                </td>
+                <td>
+                    <div id="challengeContainer"></div>
+                </td>
+            </tr>
+        </table>
+	</body>
+</html>
