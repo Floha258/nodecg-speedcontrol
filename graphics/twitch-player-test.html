@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html data-sceneid="twitch-player-test">
 	<head>
-        <script src="../bower_components/jquery/dist/jquery.js"></script>
+		<link href="css/common.css" rel="stylesheet"/>
+		<script src="../bower_components/gsap/src/minified/TweenMax.min.js"></script>
+		<script src="../bower_components/jquery/dist/jquery.min.js"></script>
+		<script src="js/animation.js"></script>
+		<script src="js/editmode.js"></script>
+		<script src="js/speedcontrol.js"></script>
+		<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/themes/cupertino/jquery-ui.css" />
         <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
-        <script src= "twitch-player-test.js"></script>
+        <script src= "js/twitch-player.js"></script>
 		<style>
 		</style>
 	</head>
@@ -11,5 +17,8 @@
 		<div id="twitch-player0" class="twitch-player"></div>
 		<div id="twitch-player1" class="twitch-player"></div>
 		<div id="twitch-player2" class="twitch-player"></div>
+		<div id="timer" ></div>
+		<div id="runInformationGameName"></div>
+		<div id="runInformationGameCategory"></div>
 	</body>
 </html>

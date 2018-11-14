@@ -45,14 +45,20 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 		_processRawCampain(resp.body.data);
 		setUpPusher();
 		nodecg.listenFor('refreshTiltify', doUpdate);
+		doUpdate();
 	});
 }
 
 function setUpPusher() {
 	var tiltifyPusher = new Pusher(tiltifyApiKey, {cluster: tiltifyCluster});
 	var channel = tiltifyPusher.subscribe("campaign."+nodecg.bundleConfig.tiltify.campaign);
-	channel.bind("donation", doUpdate);
+	channel.bind("donation", _processRawDonation);
 	channel.bind('campaign', _processRawCampain);
+}
+
+function _processRawDonation() {
+	nodecg.sendMessage('newDonation');
+	doUpdate();
 }
 
 function doUpdate() {

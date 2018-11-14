@@ -23,14 +23,16 @@
   "description": "NodeCG Overlay engine for Speedrun Marathons",
   "license": "MIT",
   "nodecg": {
-    "compatibleRange": "^1.0.0",
-    "graphics": [
-      {
-        "file": "twitch-player-test.html",
-        "width": 500,
-        "height": 500
-      }
-    ],
+    "compatibleRange": "^1.2.2",
+    "graphics": [{
+      "file": "twitch-player-test.html",
+      "width": 1280,
+      "height": 720
+    },{
+      "file": "donation-dashboard.html",
+      "width": 1280,
+      "height": 720
+    }],
     "dashboardPanels": [
       {
         "name": "run-player",
