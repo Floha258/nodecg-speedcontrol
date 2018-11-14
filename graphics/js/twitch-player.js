@@ -43,12 +43,14 @@ $(function() {
                 if (oldStream.getChannel() != stream.channel) {
                     oldStream.setChannel(stream.channel);
                 }
-                // if (oldStream.getWidth() != stream.width) {
-                //     oldStream.setWidth(stream.width);
-                // }
-                // if (oldStream.getHeight() != stream.height) {
-                //     oldStream.setHeight(stream.height);
-                // }
+                const streamFrame = $('#twitch-player'+i+' iframe');
+                if (streamFrame.attr('width') != stream.width) {
+                    nodecg.log.info('Changing width');
+                    streamFrame.attr('width',stream.width);
+                }
+                if (streamFrame.attr('height') != stream.height) {
+                    streamFrame.attr('height',stream.height);
+                }
                 if (oldStream.isPaused() != stream.paused) {
                     if (stream.paused) {
                         oldStream.pause();
