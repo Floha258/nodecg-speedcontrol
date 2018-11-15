@@ -80,7 +80,7 @@ function reqCampain() {
 
 function _processRawCampain(data) {
 	// Update the donation total replicant if it has actually changed.
-	if (donationTotal.value != data.amountRaised)
+	if (data.amountRaised && donationTotal.value != data.amountRaised)
 		donationTotal.value = data.amountRaised;
 		nodecg.log.info("Updating total to "+donationTotal.value);
 }
