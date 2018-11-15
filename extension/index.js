@@ -8,6 +8,9 @@ module.exports = function(nodecg) {
 	// This must be done before any other files are `require`d.
 	nodecgAPIContext.set(nodecg);
 
+	// set up Replicants here so they don't have to be declared multiple times
+	nodecg.Replicant('bingo-colors', {'persistent':false,'defaultValue':['red','red','red','red']});
+
 	// Other extension files we need to load.
 	require('./stopwatch');
 	require('./horaro-import');

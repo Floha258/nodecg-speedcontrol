@@ -25,10 +25,6 @@
   "nodecg": {
     "compatibleRange": "^1.0.0",
     "graphics": [{
-      "file": "twitch-player-test.html",
-      "width": 1280,
-      "height": 720
-    },{
       "file": "donation-dashboard.html",
       "width": 1280,
       "height": 720
@@ -85,6 +81,13 @@
         "title": "Tiltify Dashboard",
         "width": 2,
         "file": "TiltifyDashboard.html",
+        "headerColor": "#008BB9"
+      },
+      {
+        "name": "bingo-color-chooser",
+        "title": "Bingo Color Chooser",
+        "width": 2,
+        "file": "BingoColorChooser.html",
         "headerColor": "#008BB9"
       },
       {
