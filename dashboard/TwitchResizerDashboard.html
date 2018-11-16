@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html id="twitch-player-control">
+	<head>
+		<script src="../bower_components/jquery/dist/jquery.js"></script>
+		<script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+		<script src="TwitchResizerDashboard.js"></script>
+		<style>
+            #resize-container {
+                width: 1024px;
+                height: 576px;
+                overflow: hidden;
+                background: #00FF00;
+            }
+
+            #resize-container iframe{
+                position: relative;
+            }
+		</style>
+	</head>
+	<body>
+        <div class="top-selectors"><span>Choose Stream to resize</span><select id="stream-select"></select></div>
+        <div id="resize-container"></div>
+        <div class="resize-options"><span>Left:</span><input id="left-percent" type="number" class="resize-input" value="0"><span>Top:</span><input id="top-percent" type="number" class="resize-input" value="0"><span>Width:</span><input id="width-percent" type="number" class="resize-input" value="100"><span>Height:</span><input id="height-percent" type="number" class="resize-input" value="100"><button id="save-resize">Save</button><span id="success-msg" style="display: none">Changes saved!</span></div>
+    </body>
+</html>

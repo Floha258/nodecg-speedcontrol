@@ -121,6 +121,14 @@
         "workspace": "Run Modifications"
       },
       {
+        "name": "twitch-resizer-dashboard",
+        "title": "Twitch Resizer",
+        "width": 10,
+        "file": "TwitchResizerDashboard.html",
+        "headerColor": "#008BB9",
+        "workspace": "Twitch Resizing"
+      },
+      {
         "name": "run-info",
         "title": "Add/Edit Run Info",
         "width": 5,
