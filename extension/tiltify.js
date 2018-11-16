@@ -9,44 +9,71 @@ var requestOptions = {
 		'Authorization': ''
 	}
 };
+
+// Replicants
+var donationTotal = nodecg.Replicant('tiltifyDonationTotal', {persistent:false, defaultValue:0});
+var polls = nodecg.Replicant('tiltifyPolls', {persistent:false, defaultValue:[]});
+var incentives = nodecg.Replicant('tiltifyIncentives', {persistent:false, defaultValue:[]});
+var donations = nodecg.Replicant('tiltifyDonations', {persistent:false, defaultValue:[]});
+
+// for testing
+const enableTiltifyTestDonations = nodecg.bundleConfig.tiltify.enableFakeDonations;
 // Static constants from the proprietary tiltify api
 const tiltifyApiKey = "c0b88d914287a2f4ee32";
 const tiltifyCluster = "mt1";
 
 if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.tiltify.enable) {
-	if (!nodecg.bundleConfig.tiltify.token)
-		nodecg.log.warn('Tiltify support is enabled but no API access token is set.');
-	if (!nodecg.bundleConfig.tiltify.campaign)
-		nodecg.log.warn('Tiltify support is enabled but no campaign ID is set.');
-	
-	if (!nodecg.bundleConfig.tiltify.token || !nodecg.bundleConfig.tiltify.campaign)
-		return;
-	
-	nodecg.log.info('Tiltify integration is enabled.');
-
-	var donationTotal = nodecg.Replicant('tiltifyDonationTotal', {persistent:false, defaultValue:0});
-        var polls = nodecg.Replicant('tiltifyPolls', {persistent:false, defaultValue:[]});
-	var incentives = nodecg.Replicant('tiltifyIncentives', {persistent:false, defaultValue:[]});
-	var donations = nodecg.Replicant('tiltifyDonations', {persistent:false, defaultValue:[]});
-	requestOptions.headers['Authorization'] = 'Bearer '+nodecg.bundleConfig.tiltify.token;
-	
-	// Do the initial request, which also checks if the key is valid.
-	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign, requestOptions, (err, resp) => {
-		if (resp.statusCode === 403) {
-			nodecg.log.warn('Your Tiltify API access token is not valid.');
-			return;
+	if (enableTiltifyTestDonations) {
+		nodecg.log.info('Tiltify enable in test mode, only fake donations');
+		var testDonations = [];
+		var testPolls = [];
+		var testChallenges = [];
+		var testCampaign = {"amountRaised":0};
+		var did = 0;
+		function sendFakeDonation() {
+			if (testDonations.length >= 10) {
+				testDonations.splice(0,1);
+			}
+			var donationAmount = Math.floor(Math.random()*200 + 1);
+			testDonations.push({"id":did,"amount":donationAmount,"name":"donatorname","comment":"Greetings from germany!",
+				"completedAt":1541438000000,"pollOptionId":123,"sustained":false});
+				testCampaign.amountRaised += donationAmount;
+			doUpdate();
+			did++;
+			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
 		}
-
-		if (resp.statusCode === 404) {
-			nodecg.log.warn('The Tiltify campaign with the specified ID cannot be found.');
-			return;
-		}
-		
-		_processRawCampain(resp.body.data);
-		setUpPusher();
 		nodecg.listenFor('refreshTiltify', doUpdate);
-		doUpdate();
-	});
+		sendFakeDonation();
+	} else {
+		if (!nodecg.bundleConfig.tiltify.token)
+			nodecg.log.warn('Tiltify support is enabled but no API access token is set.');
+		if (!nodecg.bundleConfig.tiltify.campaign)
+			nodecg.log.warn('Tiltify support is enabled but no campaign ID is set.');
+		
+		if (!nodecg.bundleConfig.tiltify.token || !nodecg.bundleConfig.tiltify.campaign)
+			return;
+		requestOptions.headers['Authorization'] = 'Bearer '+nodecg.bundleConfig.tiltify.token;
+		
+		nodecg.log.info('Tiltify integration is enabled.');
+
+		// Do the initial request, which also checks if the key is valid.
+		needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign, requestOptions, (err, resp) => {
+			if (resp.statusCode === 403) {
+				nodecg.log.warn('Your Tiltify API access token is not valid.');
+				return;
+			}
+
+			if (resp.statusCode === 404) {
+				nodecg.log.warn('The Tiltify campaign with the specified ID cannot be found.');
+				return;
+			}
+			
+			_processRawCampain(resp.body.data);
+			setUpPusher();
+			nodecg.listenFor('refreshTiltify', doUpdate);
+			doUpdate();
+		});
+	}
 }
 
 function setUpPusher() {
@@ -70,6 +97,10 @@ function doUpdate() {
 }
 
 function reqCampain() {
+	if (enableTiltifyTestDonations) {
+		_processRawCampain(testCampaign);
+		return;
+	}
 	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign, requestOptions, (err, resp) => {
 		if (!err && resp.statusCode === 200)
 			_processRawCampain(resp.body.data);
@@ -86,6 +117,10 @@ function _processRawCampain(data) {
 }
 
 function reqDonations() {
+	if (enableTiltifyTestDonations) {
+		_processRawDonations(testDonations);
+		return;
+	}
 	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+"/donations", requestOptions, (err, resp) => {
 		if (!err && resp.statusCode === 200)
 			_processRawDonations(resp.body.data);
@@ -101,12 +136,16 @@ function _processRawDonations(data) {
 }
 
 function reqPolls() {
-        needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/polls', requestOptions, (err, resp) => {
-                if (!err && resp.statusCode === 200)
-			_processRawPolls(resp.body.data);
-		else
-			nodecg.log.error(err);
-        });
+	if (enableTiltifyTestDonations) {
+		_processRawPolls(testPolls);
+		return;
+	}
+	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/polls', requestOptions, (err, resp) => {
+			if (!err && resp.statusCode === 200)
+		_processRawPolls(resp.body.data);
+	else
+		nodecg.log.error(err);
+	});
 }
 
 /**
@@ -118,12 +157,16 @@ function _processRawPolls(data) {
 }
 
 function reqChallenges() {
-        needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/challenges', requestOptions, (err, resp) => {
-                if(!err && resp.statusCode === 200)
-                        _processRawChallenges(resp.body.data);
-		else
-			nodecg.log.error(err);
-        });
+	if (enableTiltifyTestDonations) {
+		_processRawChallenges(testChallenges);
+		return;
+	}
+	needle.get('https://tiltify.com/api/v3/campaigns/'+nodecg.bundleConfig.tiltify.campaign+'/challenges', requestOptions, (err, resp) => {
+			if(!err && resp.statusCode === 200)
+					_processRawChallenges(resp.body.data);
+	else
+		nodecg.log.error(err);
+	});
 }
 
 /**
