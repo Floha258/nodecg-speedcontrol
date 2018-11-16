@@ -32,10 +32,10 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 		var did = 0;
 		function sendFakeDonation() {
 			if (testDonations.length >= 10) {
-				testDonations.splice(0,1);
+				testDonations.pop();
 			}
 			var donationAmount = Math.floor(Math.random()*200 + 1);
-			testDonations.push({"id":did,"amount":donationAmount,"name":"donatorname","comment":"Greetings from germany!",
+			testDonations.unshift({"id":did,"amount":donationAmount,"name":"donatorname","comment":"Greetings from germany!",
 				"completedAt":1541438000000,"pollOptionId":123,"sustained":false});
 				testCampaign.amountRaised += donationAmount;
 			doUpdate();
