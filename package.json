@@ -84,6 +84,13 @@
         "headerColor": "#008BB9"
       },
       {
+        "name": "twitch-player-control",
+        "title": "Twitch Player",
+        "width": 2,
+        "file": "TwitchPlayerControl.html",
+        "headerColor": "#008BB9"
+      },
+      {
         "name": "bingo-color-chooser",
         "title": "Bingo Color Chooser",
         "width": 2,
