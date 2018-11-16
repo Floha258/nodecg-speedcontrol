@@ -35,10 +35,11 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 				testDonations.pop();
 			}
 			var donationAmount = Math.floor(Math.random()*200 + 1);
-			testDonations.unshift({"id":did,"amount":donationAmount,"name":"donatorname","comment":"Greetings from germany!",
-				"completedAt":1541438000000,"pollOptionId":123,"sustained":false});
-				testCampaign.amountRaised += donationAmount;
-			doUpdate();
+			var testDono = {"id":did,"amount":donationAmount,"name":"donatorname","comment":"Greetings from germany!",
+			"completedAt":1541438000000,"pollOptionId":123,"sustained":false};
+			testDonations.unshift(testDono);
+			testCampaign.amountRaised += donationAmount;
+			_processRawDonation(testDono);
 			did++;
 			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
 		}
@@ -83,8 +84,8 @@ function setUpPusher() {
 	channel.bind('campaign', _processRawCampain);
 }
 
-function _processRawDonation() {
-	nodecg.sendMessage('newDonation');
+function _processRawDonation(donation) {
+	nodecg.sendMessage('newDonation', donation);
 	doUpdate();
 }
 
