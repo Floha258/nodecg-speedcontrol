@@ -37,12 +37,7 @@ $(function () {
         }
     });
 
-    var streamsReplicant = nodecg.Replicant('twitch-streams', {'persistent':false,'defaultValue':[
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0,'muted':true,'paused':false,'hidden':true},
-    ]});
+    var streamsReplicant = nodecg.Replicant('twitch-streams');
 	
 	$('#resetMarathonButton').button();
 	$('#resetMarathonButton').click(() => {
