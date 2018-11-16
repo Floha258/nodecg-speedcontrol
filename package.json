@@ -23,7 +23,7 @@
   "description": "NodeCG Overlay engine for Speedrun Marathons",
   "license": "MIT",
   "nodecg": {
-    "compatibleRange": "^1.0.0",
+    "compatibleRange": "^1.2.2",
     "graphics": [{
       "file": "donation-dashboard.html",
       "width": 1280,
