@@ -10,6 +10,12 @@ module.exports = function(nodecg) {
 
 	// set up Replicants here so they don't have to be declared multiple times
 	nodecg.Replicant('bingo-colors', {'persistent':false,'defaultValue':['red','red','red','red']});
+    nodecg.Replicant('twitch-streams', {'persistent':false,'defaultValue':[
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0.5,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0.5,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0.5,'paused':false,'hidden':true},
+        {'channel':'speedrunslive','width':400,'height':350,'quality':'chunked','volume':0.5,'paused':false,'hidden':true},
+    ]});
 
 	// Other extension files we need to load.
 	require('./stopwatch');
