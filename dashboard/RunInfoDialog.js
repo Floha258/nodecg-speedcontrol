@@ -8,7 +8,6 @@ $(function() {
 	var runDataEditRunReplicant = nodecg.Replicant('runDataEditRun', {defaultValue: -1, persistent: false});
 	var runInfo = {};
 	var currentRunID = -1;
-	var disableTeamEditing = false;
 	
 	// Dialog related elements for ease of access to change parts later.
 	var dialogElement = $(nodecg.getDialog('run-info'));
@@ -18,7 +17,6 @@ $(function() {
 	
 	// When the replicant used to store the run we want to edit is changed.
 	runDataEditRunReplicant.on('change', (newVal, oldVal) => {
-		disableTeamEditing = false;
 		if (newVal === undefined || newVal === null) return;
 		currentRunID = newVal;
 		
@@ -34,7 +32,7 @@ $(function() {
 			dialogConfirmButton.text('save changes');
 			
 			runInfo = runDataArrayReplicant.value[getRunIndexInRunDataArray(newVal)];
-			$('#allPlayersInput').html(''); // Remove blank player data fields.
+			$('#allTeamsInput').html(''); // Remove blank data fields.
 			
 			// Populate fields with relevant data.
 			$('#gameInput').val(runInfo.game);
@@ -47,17 +45,12 @@ $(function() {
 			
 			// Currently only supporting the first runner in a team.
 			var teamData = runInfo.teams;
-			if (teamData.length === 0)
-				$('#allPlayersInput').html('No Players');
-			else if (teamData.length > 0 && teamData[0].members.length > 1) {
-				disableTeamEditing = true;
-				$('#allPlayersInput').html('Editing disabled for your safety while features are in development.');
-			}
-			else {
+			if (teamData.length === 0) {
+				// nothing
+			} else {
 				for (var i = 0; i < teamData.length; i++) {
-					var teamMembers = teamData[i].members;
-					if (!teamMembers.length) continue;
-					addRunnerFields(teamMembers[0]);
+					var team = teamData[i];
+					addTeamFields(team);
 				}
 			}
 		}
@@ -114,21 +107,27 @@ $(function() {
 		newRunData.scheduled = undefined;
 		newRunData.scheduledS = 0;
 		
-		if (!disableTeamEditing) {
+		// Going through every team
+		$('.teamInput').each(function(index) {
+			var $this = $(this);
+			var teamName = $this.find('.teamNameInput').val();
+			if (!teamName) return;
+
+			var team = {
+				name: teamName,
+				custom: false,
+				members: []
+			};
+
+			// get all players in the team
 			// Going through all the player detail inputs to continue the above.
-			$('#allPlayersInput .playerInput').each(function(index) {
+			$this.find('.playerInput').each(function(index) {
 				var playerName = $(this).find('.playerNameInput').val();
 				if (!playerName.length) return true; // Skip this player.
 				
 				// At some point we will try and pull these from speedrun.com.
 				var twitchURI = $(this).find('.playerStreamInput').val();
 				var region = $(this).find('.playerRegionInput').val();
-				
-				var team = {
-					name: playerName,
-					custom: false,
-					members: []
-				};
 				
 				var memberObj = {
 					names: {
@@ -143,14 +142,10 @@ $(function() {
 				
 				team.members.push(memberObj);
 				newRunData.players.push(memberObj);
-				newRunData.teams.push(team);
 			});
-		}
+			newRunData.teams.push(team);
+		});
 		
-		else {
-			newRunData.players = runInfo.players;
-			newRunData.teams = runInfo.teams;
-		}
 
 		// Add back the custom data if this is an edit and it's needed.
 		if (runInfo && runInfo.customData)
@@ -204,15 +199,32 @@ $(function() {
 		return -1;
 	}
 	
-	$('#addExtraRunnerButton').click(function() {
-		addRunnerFields();
+	$('#addExtraTeamButton').click(function() {
+		addTeamFields();
 	});
+
+	function addTeamFields(teamInfo) {
+		var teamInputs = '<div class="teamInput"><button type="button" class="removeTeamButton">- Remove Team</button><input class="teamNameInput" placeholder="Team Name"><div class="allPlayersInput"></div><button type="button" class="addExtraPlayerButton">+ Add Extra Player</button></div>';
+		var $teamInputs = $(teamInputs);
+		$teamInputs.find('button.removeTeamButton').click((event)=>{
+			$(event.target).parent().remove();
+		});
+		$teamInputs.find('button.addExtraPlayerButton').click(()=>{
+			addRunnerFields(null, $teamInputs.find('.allPlayersInput'));
+		});
+		$('#allTeamsInput').append($teamInputs);
+		if (teamInfo) {
+			$teamInputs.find('.teamNameInput').val(teamInfo.name);
+			// if needed add players
+			teamInfo.members.forEach(member => {
+				addRunnerFields(member, $teamInputs.find('.allPlayersInput'));
+			});
+		}
+
+	}
 	
-	function addRunnerFields(runnerInfo) {
+	function addRunnerFields(runnerInfo, $runnerContainer) {
 		var $playerInputs = '<span class="playerInput">';
-		
-		// Add line breaks if there is already more than 0 players.
-		if ($('.playerInput').length > 0) $playerInputs += '<br><br>';
 		
 		// HTML for fields.
 		$playerInputs += '<button type="button" class="removeRunnerButton">- Remove Player</button><input class="playerNameInput" placeholder="Player\'s Username"><input class="playerStreamInput" placeholder="Player\'s Stream URL (e.g. https://twitch.tv/trihex)"><input class="playerRegionInput" placeholder="Player\'s Country Code (e.g. SE)"></span>';
@@ -229,20 +241,17 @@ $(function() {
 		// Action to do when the "Remove Player" button is clicked.
 		$('.removeRunnerButton', $playerInputs).click(event => {
 			$(event.target).parent().remove();
-			if ($('.playerInput').length === 0) $('#allPlayersInput').html('No Players');
-			else if ($('.playerInput').length >= 1) $('.playerInput').first().find('br').remove();
 		});
 		
-		$('#allPlayersInput').append($playerInputs);
+		$runnerContainer.append($playerInputs);
 	}
 	
 	// Reset form and inputs back to default.
 	function resetInputs() {
 		$('#gameDetailsInputs input').val('');
-		$('#allPlayersInput').html('');
 		if (defaultSetupTimeReplicant.value > 0)
 			$('#setupTimeInput').val(msToTime(defaultSetupTimeReplicant.value*1000));
-		$('#allPlayersInput').html('No Players');
+		$('#allTeamsInput').html('');
 	}
 	
 	// Needs moving to a seperate file; this is copy/pasted in a few places.

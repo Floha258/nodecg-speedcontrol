@@ -7,6 +7,18 @@
 			#gameDetailsInputs input {
 				width: 95%;
 			}
+
+			#gameDetailsInputs button {
+				display: block;
+			}
+
+			.teamInput {
+				margin-top: 20px;
+			}
+
+			.allPlayersInput {
+				margin-left: 5%;
+			}
 		</style>
 	</head>
 	<body>
@@ -19,16 +31,24 @@
 			<input id="regionInput" placeholder="Region">
 			<input id="setupTimeInput" placeholder="Setup Time (HH:MM:SS)">
 			<br><br>
-			<span id="allPlayersInput">
-				<!--<span class="playerInput">
-					<button type="button" class="removeRunnerButton">- Remove Player</button>
-					<input class="playerNameInput" placeholder="Player's Username">
-					<input class="playerStreamInput" placeholder="Player's Stream URL (e.g. https://twitch.tv/trihex)">
-					<input class="playerRegionInput" placeholder="Player's Country Code (e.g. SE)">
-				</span>-->
-			</span>
+			<span id="allTeamsInput">
+				<!--<span class="teamInput">
+					<input class="teamNameInput" placeholder="Team Name">
+					<button type="button" class="removeTeamButton">- Remove Team</button>
+					<span class="allPlayersInput">
+						<span class="playerInput">
+							<button type="button" class="removeRunnerButton">- Remove Player</button>
+							<input class="playerNameInput" placeholder="Player's Username">
+							<input class="playerStreamInput" placeholder="Player's Stream URL (e.g. https://twitch.tv/trihex)">
+							<input class="playerRegionInput" placeholder="Player's Country Code (e.g. SE)">
+						</span>
+					</span>
+					<br><br>
+					<button type="button" class="addExtraPlayerButton">+ Add Extra Player</button>
+				</span>
+			</span>-->
 			<br><br>
-			<button type="button" id="addExtraRunnerButton">+ Add Extra Player</button>
 		</span>
+		<button type="button" id="addExtraTeamButton">+ Add Extra Team</button>
 	</body>
 </html>
