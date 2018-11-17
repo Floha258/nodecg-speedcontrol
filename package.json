@@ -9,6 +9,8 @@
   "dependencies": {
     "async": "^2.4.1",
     "clone": "^2.1.1",
+    "cheerio": "^1.0.0-rc.1",
+    "deep-equal": "^1.0.1",
     "graphql-request": "^1.6.0",
     "inherits": "^2.0.1",
     "livesplit-core": "^0.9.0",
@@ -17,6 +19,7 @@
     "needle": "^1.6.0",
     "pusher-js": "^4.3.1",
     "request": "^2.73.0",
+    "request-promise": "^4.2.1",
     "tmi.js": "^1.1.1",
     "ws": "^3.0.0"
   },
@@ -24,11 +27,18 @@
   "license": "MIT",
   "nodecg": {
     "compatibleRange": "^1.2.2",
-    "graphics": [{
-      "file": "donation-dashboard.html",
-      "width": 1280,
-      "height": 720
-    }],
+    "graphics": [
+      {
+        "file": "donation-dashboard.html",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "file": "bingo-board.html",
+        "width": 1280,
+        "height": 720
+      }
+    ],
     "dashboardPanels": [
       {
         "name": "run-player",
