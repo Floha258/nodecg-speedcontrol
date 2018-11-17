@@ -67,6 +67,10 @@ $(()=>{
         if (!newGoals || !newGoals.cells) {
             return;
         }
+        // check if init
+        if (!oldGoals) {
+            createBingoBoard();
+        }
         for (var i in newGoals.cells) {
             const newGoal = newGoals.cells[i];
             // check if goal needs to be updated
@@ -77,5 +81,23 @@ $(()=>{
             }
         }
     })
+
+    function createBingoBoard() {
+        var bingoConainer = $('#bingo-container');
+        if (!bingoConainer) {
+            nodecg.log.error('No bingo container found!');
+            return;
+        }
+        var bingoHtml = '<table class="bingo-table">'
+        for (var i = 0;i<5;i++) {
+            bingoHtml += '<tr>';
+            for (var j = 0;j<5;j++) {
+                bingoHtml += '<td><div id="slot'+(i*5+j+1)+'" class="square"><div class="shadow"></div><div class="text-container vertical-center"></div></div></td>';
+            }
+            bingoHtml += '</tr>';
+        }
+        bingoHtml += '</table>';
+        bingoConainer.html(bingoHtml);
+    }
     
 });
