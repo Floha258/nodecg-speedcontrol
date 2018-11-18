@@ -31,6 +31,8 @@ $(()=>{
                 (err)=>{
                     if (err) {
                         bingosyncErrorMsg.text(err);
+                    } else {
+                        bingosyncErrorMsg.text('');
                     }
             });
         }

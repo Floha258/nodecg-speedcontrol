@@ -16,33 +16,35 @@ const log = new nodecg.Logger(`${nodecg.bundleName}:bingosync`);
 const request = RequestPromise.defaults({jar: true}); // <= Automatically saves and re-uses cookies.
 const boardRep = nodecg.Replicant('bingoboard', {'defaultValue':{'cells':[], 'boardHidden':false}});
 const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{'roomCode':null,'passphrase':null,'status':'disconnected'}});
+// always disconnected at startup, 
+socketRep.value.status = 'disconnected';
 let fullUpdateInterval;
 let websocket = null;
 
 const noop = () => {}; // tslint:disable-line:no-empty
 
-nodecg.listenFor('joinBingosyncRoom', (data, callback) => {
+nodecg.listenFor('joinBingosyncRoom', async (data, callback) => {
 	callback = callback || noop; // tslint:disable-line:no-parameter-reassignment
 	if (!data.passphrase || !data.roomCode) {
 		callback('Need to specify passphrase and roomCode!');
 		return;
 	}
+	socketRep.value = {
+		...socketRep.value,
+		...data
+	};
 	try {
-		socketRep.value = {
-			...socketRep.value,
-			...data
-		};
-		joinRoom({
+		await joinRoom({
 			siteUrl: 'https://bingosync.com',
 			socketUrl: 'wss://sockets.bingosync.com',
 			playerName: 'bingothon',
 			roomCode: data.roomCode,
 			passphrase: data.passphrase,
-		}, callback);
-	} catch (error) {
-		socketRep.value.status = 'error';
+		});
+		callback();
+	} catch(error) {
 		log.error(`Failed to join room ${data.roomCode}:`, error);
-		callback(error);
+		callback(error.message);
 	}
 });
 
@@ -116,7 +118,7 @@ async function recover() {
 }
 
 async function joinRoom(
-	{siteUrl = 'https://bingosync.com', socketUrl = 'wss://sockets.bingosync.com', roomCode, passphrase, playerName = 'bingothon'}, callback = noop) {
+	{siteUrl = 'https://bingosync.com', socketUrl = 'wss://sockets.bingosync.com', roomCode, passphrase, playerName = 'bingothon'}) {
 	socketRep.value.status = 'connecting';
 	clearInterval(fullUpdateInterval);
 	destroyWebsocket();
@@ -128,7 +130,17 @@ async function joinRoom(
 		transform(body) {
 			return cheerio.load(body);
 		}
+	}).catch(error=>{
+		// for whatever reason the normal promise reject algorithm doesn't work???
+		// use the chance here to differentiate between 404 and others
+		socketRep.value.status = 'error';
+		if (error.statusCode == 404) {
+			throw new Error("Room not found");
+		} else {
+			throw new Error("Couldn't get room page");
+		}
 	});
+	log.info('Loaded room page.');
 
 	// If input[name="csrfmiddlewaretoken"] exists on the page, then we must be on the "Join Room" form.
 	// Else, we must be in the actual game room.
@@ -157,7 +169,23 @@ async function joinRoom(
 			transform(body) {
 				return cheerio.load(body);
 			}
+		}).catch(error=>{
+			// for whatever reason the normal promise reject algorithm doesn't work???
+			// use the chance here to differentiate between 404 and others
+			socketRep.value.status = 'error';
+			if (error.statusCode == 404) {
+				throw new Error("Room not found");
+			} else {
+				throw new Error("Couldn't get room page");
+			}
 		});
+
+		// check for incorrect passphrase error
+		// if we are still on the login site the password was incorrect
+		if ($('input[name="csrfmiddlewaretoken"]').length) {
+			socketRep.value.status = 'error';
+			throw new Error('Incorrect Passphrase');
+		}
 
 		log.info('Joined room.');
 		log.info('Loading room page...');
@@ -168,7 +196,16 @@ async function joinRoom(
 			transform(body) {
 				return cheerio.load(body);
 			}
-		});
+		}).catch(error=>{
+			// for whatever reason the normal promise reject algorithm doesn't work???
+			// use the chance here to differentiate between 404 and others
+			socketRep.value.status = 'error';
+			if (error.statusCode == 404) {
+				throw new Error("Room not found");
+			} else {
+				throw new Error("Couldn't get room page");
+			}
+		});;
 	}
 
 	log.info('Loaded room page.');
@@ -176,22 +213,20 @@ async function joinRoom(
 	// Socket stuff
 	const matches = $.html().match(SOCKET_KEY_REGEX);
 	if (!matches) {
-		log.error('Socket key not found on page.');
-		callback('Socket key not found on page.');
-		return;
+		socketRep.value.status = 'error';
+		throw new Error('Socket key not found on page.');
 	}
 
 	const socketKey = matches[1];
 	if (!socketKey) {
-		log.error('Socket key not found on page.');
-		callback('Socket key not found on page.');
-		return;
+		socketRep.value.status = 'error';
+		throw new Error('Socket key not found on page.');
 	}
 
 	const thisInterval = setInterval(() => {
 		fullUpdate().catch(error => {
+			socketRep.value.status = 'error';
 			log.error('Failed to fullUpdate:', error);
-			callback('Failed to fullUpdate:' + error);
 		});
 	}, 15 * 1000);
 	fullUpdateInterval = thisInterval;
