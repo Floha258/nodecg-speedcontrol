@@ -15,7 +15,7 @@ const nodecg = require('./utils/nodecg-api-context').get();
 const log = new nodecg.Logger(`${nodecg.bundleName}:bingosync`);
 const request = RequestPromise.defaults({jar: true}); // <= Automatically saves and re-uses cookies.
 const boardRep = nodecg.Replicant('bingoboard', {'defaultValue':{'cells':[], 'boardHidden':false}});
-const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{}});
+const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{'roomCode':null,'passphrase':null,'status':'disconnected'}});
 let fullUpdateInterval;
 let websocket = null;
 
@@ -52,6 +52,8 @@ nodecg.listenFor('leaveBingosyncRoom', (_data, callback) => {
 		clearInterval(fullUpdateInterval);
 		destroyWebsocket();
 		socketRep.value.status = 'disconnected';
+		socketRep.value.roomCode = '';
+		socketRep.value.passphrase = '';
 		callback();
 	} catch (error) {
 		log.error('Failed to leave room:', error);
