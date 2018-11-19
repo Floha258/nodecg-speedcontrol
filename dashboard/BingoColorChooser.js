@@ -8,6 +8,7 @@ $(()=>{
     const roomCodeInput = $('#bingosync-roomcode');
     const passwordInput = $('#bingosync-password');
     const bingosyncErrorMsg = $('#bingosync-error');
+    const hideShowBoard = $('#hide-show-board');
     const $playerSelects = [
         $('#player0-color'),
         $('#player1-color'),
@@ -17,6 +18,18 @@ $(()=>{
     $('#update-colors').click(() => {
         for (var i in $playerSelects) {
             bingoColors.value[i] = $playerSelects[i].val();
+        }
+    });
+
+    hideShowBoard.click(()=>{
+        // toggle visible status
+        boardRep.value.boardHidden = !boardRep.value.boardHidden;
+    });
+
+    boardRep.on('change', (newVal, oldVal)=>{
+        // update hide/show button description if status changed
+        if (!oldVal || newVal.boardHidden != oldVal.boardHidden) {
+            hideShowBoard.text(newVal.boardHidden ? 'Show board' : 'Hide board');
         }
     });
 
