@@ -6,6 +6,7 @@ $(function() {
 	var runDataLastIDReplicant = nodecg.Replicant('runDataLastID');
 	var defaultSetupTimeReplicant = nodecg.Replicant('defaultSetupTime', {defaultValue: 0});
 	var runDataEditRunReplicant = nodecg.Replicant('runDataEditRun', {defaultValue: -1, persistent: false});
+	var streamsReplicant = nodecg.Replicant('twitch-streams');
 	var runInfo = {};
 	var currentRunID = -1;
 	
@@ -173,8 +174,32 @@ $(function() {
 			runDataArrayReplicant.value[getRunIndexInRunDataArray(runInfo.runID)] = newRunData;
 			
 			// If the run being edited is the currently active run, update those details too.
-			if (runDataActiveRunReplicant.value && runInfo.runID == runDataActiveRunReplicant.value.runID)
+			if (runDataActiveRunReplicant.value && runInfo.runID == runDataActiveRunReplicant.value.runID) {
 				runDataActiveRunReplicant.value = newRunData;
+				// and update the streams// grab all runners
+				var index = 0;
+				for (index in newRunData.players) {
+					const curPlayerTwitch = newRunData.players[index].twitch;
+					if (!curPlayerTwitch || !curPlayerTwitch.uri) {
+						nodecg.log.error('Twitch name for player '+index+' missing!');
+						streamsReplicant.value[index].paused = true;
+						streamsReplicant.value[index].hidden = true;
+						continue;
+					}
+					const match = curPlayerTwitch.uri.match(/https?:\/\/www.twitch.tv\/(.*)/);
+					if (match && match[1]) {
+						streamsReplicant.value[index].channel = match[1];
+						streamsReplicant.value[index].hidden = false;
+					}
+				}
+				index++;
+				// hide/mute/stop all other streams
+				while (index < 4) {
+					streamsReplicant.value[index].paused = true;
+					streamsReplicant.value[index].hidden = true;
+					index++;
+				}
+			}
 		}
 		
 		runDataEditRunReplicant.value = -1;
