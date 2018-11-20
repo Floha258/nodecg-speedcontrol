@@ -24,7 +24,7 @@ $(()=>{
         $streamSelect.html(selectHtml);
         if (!old || !player) {
             // page just loaded, create player
-            player = new Twitch.Player(document.getElementById('resize-container'),{'channel':newStreams[0].channel, 'volume':0, 'width':1024, 'height':576});
+            player = new Twitch.Player(document.getElementById('resize-container'),{'channel':newStreams[0].channel, 'volume':0, 'width':1024, 'height':576, autoplay: false});
             $playerFrame = $('#resize-container iframe');
             stream = newStreams[0];
             $leftInput.val(stream.leftPercent);
