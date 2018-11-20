@@ -19,6 +19,9 @@ const boardRep = nodecg.Replicant('bingoboard', {'defaultValue':{'cells':[], 'bo
 if (boardRep.value.goalCountShown === undefined) {
 	boardRep.value.goalCountShown = true;
 }
+if (boardRep.value.goalCounts === undefined) {
+	boardRep.value.goalCounts = {"pink":0, "red":0, "orange":0, "brown":0, "yellow":0, "green":0, "teal":0, "blue":0, "navy":0, "purple":0};
+}
 const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{'roomCode':null,'passphrase':null,'status':'disconnected'}});
 // always disconnected at startup, 
 socketRep.value.status = 'disconnected';
