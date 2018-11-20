@@ -14,7 +14,11 @@ const SOCKET_KEY_REGEX = /temporarySocketKey\s+=\s+"(\S+)"/;
 const nodecg = require('./utils/nodecg-api-context').get();
 const log = new nodecg.Logger(`${nodecg.bundleName}:bingosync`);
 const request = RequestPromise.defaults({jar: true}); // <= Automatically saves and re-uses cookies.
-const boardRep = nodecg.Replicant('bingoboard', {'defaultValue':{'cells':[], 'boardHidden':false}});
+const boardRep = nodecg.Replicant('bingoboard', {'defaultValue':{'cells':[], 'boardHidden':false, 'goalCounts': {}, 'goalCountShown': true}});
+// default to work around the persistence
+if (boardRep.value.goalCountShown === undefined) {
+	boardRep.value.goalCountShown = true;
+}
 const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{'roomCode':null,'passphrase':null,'status':'disconnected'}});
 // always disconnected at startup, 
 socketRep.value.status = 'disconnected';
@@ -180,13 +184,6 @@ async function joinRoom(
 			}
 		});
 
-		// check for incorrect passphrase error
-		// if we are still on the login site the password was incorrect
-		if ($('input[name="csrfmiddlewaretoken"]').length) {
-			socketRep.value.status = 'error';
-			throw new Error('Incorrect Passphrase');
-		}
-
 		log.info('Joined room.');
 		log.info('Loading room page...');
 
@@ -209,6 +206,13 @@ async function joinRoom(
 	}
 
 	log.info('Loaded room page.');
+
+	// check for incorrect passphrase error
+	// if we are still on the login site the password was incorrect
+	// if ($('input[name="csrfmiddlewaretoken"]').length) {
+	// 	socketRep.value.status = 'error';
+	// 	throw new Error('Incorrect Passphrase');
+	// }
 
 	// Socket stuff
 	const matches = $.html().match(SOCKET_KEY_REGEX);
@@ -250,7 +254,20 @@ async function joinRoom(
 			return;
 		}
 
+		var goalCounts = {"pink":0, "red":0, "orange":0, "brown":0, "yellow":0, "green":0, "teal":0, "blue":0, "navy":0, "purple":0};
+
+		newBoardState.forEach((cell) => {
+			// remove blank cause thats not a color
+			// count all the color occurences
+			cell.colors.split(' ').forEach(color => {
+				if (color != 'blank') {
+					goalCounts[color]++;
+				}
+			});
+		});
+
 		boardRep.value.cells = newBoardState;
+		boardRep.value.goalCounts = goalCounts;
 	}
 }
 
@@ -299,6 +316,12 @@ function createWebsocket(socketUrl, socketKey) {
 			if (json.type === 'goal') {
 				const index = parseInt(json.square.slot.slice(4), 10) - 1;
 				boardRep.value.cells[index] = json.square;
+				// update goal count
+				if (json.remove) {
+					boardRep.value.goalCounts[json.color]--;
+				} else {
+					boardRep.value.goalCounts[json.color]++;
+				}
 			}
 		};
 

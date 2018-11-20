@@ -9,6 +9,7 @@ $(()=>{
     const passwordInput = $('#bingosync-password');
     const bingosyncErrorMsg = $('#bingosync-error');
     const hideShowBoard = $('#hide-show-board');
+    const hideShowGoalCount = $('#hide-show-goalcount');
     const $playerSelects = [
         $('#player0-color'),
         $('#player1-color'),
@@ -26,10 +27,18 @@ $(()=>{
         boardRep.value.boardHidden = !boardRep.value.boardHidden;
     });
 
+    hideShowGoalCount.click(() => {
+        // toggle visible status
+        boardRep.value.goalCountShown = !boardRep.value.goalCountShown; 
+    });
+
     boardRep.on('change', (newVal, oldVal)=>{
         // update hide/show button description if status changed
         if (!oldVal || newVal.boardHidden != oldVal.boardHidden) {
             hideShowBoard.text(newVal.boardHidden ? 'Show board' : 'Hide board');
+        }
+        if (!oldVal || newVal.goalCountShown != oldVal.goalCountShown) {
+            hideShowGoalCount.text(newVal.goalCountShown ? 'Hide goalcount' : 'Show goalcount');
         }
     });
 
