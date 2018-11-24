@@ -10,6 +10,7 @@ $(()=>{
     const bingosyncErrorMsg = $('#bingosync-error');
     const hideShowBoard = $('#hide-show-board');
     const hideShowGoalCount = $('#hide-show-goalcount');
+    const hideShowColor = $('#hide-show-bingocolor');
     const $playerSelects = [
         $('#player0-color'),
         $('#player1-color'),
@@ -32,6 +33,10 @@ $(()=>{
         boardRep.value.goalCountShown = !boardRep.value.goalCountShown; 
     });
 
+    hideShowColor.click(() => {
+        boardRep.value.colorShown = !boardRep.value.colorShown; 
+    });
+
     boardRep.on('change', (newVal, oldVal)=>{
         // update hide/show button description if status changed
         if (!oldVal || newVal.boardHidden != oldVal.boardHidden) {
@@ -39,6 +44,9 @@ $(()=>{
         }
         if (!oldVal || newVal.goalCountShown != oldVal.goalCountShown) {
             hideShowGoalCount.text(newVal.goalCountShown ? 'Hide goalcount' : 'Show goalcount');
+        }
+        if (!oldVal || newVal.colorShown != oldVal.colorShown) {
+            hideShowColor.text(newVal.colorShown ? 'Hide color' : 'Show color');
         }
     });
 
