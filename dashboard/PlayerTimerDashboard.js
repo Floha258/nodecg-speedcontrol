@@ -240,12 +240,24 @@ $(function () {
 
             $('.personalSplitButton').click(function () {
                 var index = $(this).attr('id').replace('split', '');
-                nodecg.sendMessage('timerSplit', index);
+                // kinda ugly: if there is a race with more people in team 1 and team 2 exists
+                // the timer on the second screen has to be on the third
+                // Maybe I will make this not ugly some day lmao
+                if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
+                    nodecg.sendMessage('timerSplit', 2);
+                } else {
+                    nodecg.sendMessage('timerSplit', index);
+                }
                 splitTimer(index);
             });
             $('.personalResetButton').click(function () {
                 var index = $(this).attr('id').replace('resetTime', '');
-                nodecg.sendMessage('timerReset', index);
+                // see above
+                if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
+                    nodecg.sendMessage('timerReset', 2);
+                } else {
+                    nodecg.sendMessage('timerReset', index);
+                }
                 unSplitTimer(index);
             });
 
