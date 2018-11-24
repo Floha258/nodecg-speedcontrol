@@ -28,4 +28,8 @@ module.exports = function(nodecg) {
 	require('./srcomdonations');
 	require('./tiltify');
 	require('./bingosync');
+
+	if (nodecg.bundleConfig.discord) {
+		require('./discord');
+	}
 }
