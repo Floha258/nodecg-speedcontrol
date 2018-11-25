@@ -76,7 +76,7 @@ function UpdateCommentaryChannelMembers()
 	memberArray.forEach(voiceMember => {
 
 		// Hide our bot and muted members cause that is the restreamer
-		if (voiceMember.user.tag != 'Bingothon Bot#9456' && !voiceMember.selfMuted)
+		if (voiceMember.user.tag != 'Bingothon Bot#9456' && !voiceMember.selfMute)
 		{
 			let userAvatar = voiceMember.user.avatarURL;
 
