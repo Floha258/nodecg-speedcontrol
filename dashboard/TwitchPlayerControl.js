@@ -5,6 +5,8 @@ $(()=>{
     var soundOnTwitchStream = nodecg.Replicant('sound-on-twitch-stream', bundleName, {'persistent':false,'defaultValue':-1});
     // main control panel for streams
     var streams = nodecg.Replicant('twitch-streams', bundleName);
+    // stores all quality options available
+    const streamQualities = nodecg.Replicant('stream-qualities', bundleName, {'defaultValue':[[],[],[],[]]});
 
     // handle muting/unmuting
     $('.stream-mute').click((elem)=> {
@@ -57,6 +59,29 @@ $(()=>{
             // set volume slider to right value
             controlContainer.find('.stream-volume').val(stream.volume * 100);
         }
+    });
+
+    streamQualities.on('change', (newQualities, oldQualities) => {
+        newQualities.forEach((value, index)=>{
+            // if the size is the same probably nothing has changed
+            if (oldQualities && value.length == oldQualities[index].length) {
+                return;
+            }
+            let optionsHtml = '';
+            value.forEach((quality)=>{
+                optionsHtml += '<option value="'+quality.group+'">'+quality.group+'</option>';
+            });
+            const qualSelect = $('#stream-control'+index).find('.quality-select');
+            qualSelect.html(optionsHtml);
+            qualSelect.val(streams.value[index].quality);
+        })
+    })
+
+    $('.quality-select').on('change', (elem)=>{
+        const streamID = elem.target.parentElement.id;
+        const streamNr = parseInt(streamID[streamID.length - 1]);
+        streams.value[streamNr].quality = elem.target.value;
+        nodecg.log.info('Updated quality to '+elem.target.value);
     });
 
     $('.stream-volume').on('input', (elem) => {
