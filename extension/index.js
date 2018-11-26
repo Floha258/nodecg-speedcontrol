@@ -28,4 +28,23 @@ module.exports = function(nodecg) {
 	require('./srcomdonations');
 	require('./tiltify');
 	require('./bingosync');
+
+	if (nodecg.bundleConfig.discord) {
+		if (!nodecg.bundleConfig.discord.test) {
+			require('./discord');
+		} else {
+			const voiceActivity = nodecg.Replicant('voiceActivity', {
+				defaultValue: {
+					members: []
+				}, persistent: true
+			});
+			const defaultAvatar = 'https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png';
+			voiceActivity.value = {'members':[
+				{id: 0, name: 'abc', avatar: defaultAvatar, isSpeaking: false},
+				{id: 1, name: 'testlongname', avatar: defaultAvatar, isSpeaking: true},
+				{id: 2, name: 'anotherone', avatar: defaultAvatar, isSpeaking: true},
+				{id: 3, name: 'POGGERS', avatar: defaultAvatar, isSpeaking: false},
+			]};
+		}
+	}
 }
