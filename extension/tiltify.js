@@ -54,7 +54,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 				"totalAmountRaised":0,
 				"amount":500+Math.floor(Math.random()*500),
 				"campaignId":12345,
-				"active":true,
+				"active":Math.random()<0.5,
 				"endsAt":Date.now()+3600000,// ends in an hour
 				"createdAt":Date.now(),
 				"updatedAt":Date.now()});
@@ -115,6 +115,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 			testCampaign.amountRaised += donationAmount;
 			_processRawDonation(testDono);
 			did++;
+			// schedule timeout for the next fake donation, between 2 and 12 secs
 			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
 		}
 		nodecg.listenFor('refreshTiltify', doUpdate);
@@ -165,9 +166,12 @@ function setUpPusher() {
  * Either pollOptionId, rewardId, challengeId or none of them are present, linking to the specified resource
  */
 function _processRawDonation(donation) {
-	nodecg.log.info("donation: "+JSON.stringify(donation));
-	nodecg.sendMessage('newDonation', donation);
-	doUpdate();
+	// only process completed donations
+	if (donation && donation.completedAt) {
+		nodecg.log.info("donation: "+JSON.stringify(donation));
+		nodecg.sendMessage('newDonation', donation);
+		doUpdate();
+	}
 }
 
 function doUpdate() {
