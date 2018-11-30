@@ -7,6 +7,9 @@ $(()=>{
     var streams = nodecg.Replicant('twitch-streams', bundleName);
     // stores all quality options available
     const streamQualities = nodecg.Replicant('stream-qualities', bundleName, {'defaultValue':[[],[],[],[]]});
+    const streamDelay = nodecg.Replicant('stream-delay',bundleName,{'defaultValue':[0,0,0,0], 'persistent':false});
+
+    const delayDisplays = $('.delay-display');
 
     // handle muting/unmuting
     $('.stream-mute').click((elem)=> {
@@ -75,7 +78,13 @@ $(()=>{
             qualSelect.html(optionsHtml);
             qualSelect.val(streams.value[index].quality);
         })
-    })
+    });
+
+    streamDelay.on('change',(newVals)=>{
+        delayDisplays.each((index, element)=>{
+            $(element).html(newVals[index]);
+        });
+    });
 
     $('.quality-select').on('change', (elem)=>{
         const streamID = elem.target.parentElement.id;
