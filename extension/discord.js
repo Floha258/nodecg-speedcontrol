@@ -12,6 +12,9 @@ const voiceActivity = nodecg.Replicant('voiceActivity', {
 	}, persistent: true
 });
 
+// delay in ms
+const voiceDelayRep = nodecg.Replicant('voiceDelay', {defaultValue: 0, persistent: true});
+
 // Discord API
 const bot = new Discord.Client();
 const botToken = nodecg.bundleConfig.discord.token;
@@ -128,7 +131,7 @@ function commandChannel(message) {
 					voiceActivity.value.members.find(voiceMember => {
 
 						if (voiceMember.id == user.id) {
-							voiceMember.isSpeaking = speaking; // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
+							setTimeout(()=>voiceMember.isSpeaking = speaking, voiceDelayRep.value); // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
 							return true;
 						}
 

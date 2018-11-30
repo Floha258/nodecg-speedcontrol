@@ -11,6 +11,9 @@ $(()=>{
 
     const delayDisplays = $('.delay-display');
 
+    const $discordDelay = $('#discord-delay');
+    const voiceDelayRep = nodecg.Replicant('voiceDelay', bundleName, {defaultValue: 0, persistent: true});
+
     // handle muting/unmuting
     $('.stream-mute').click((elem)=> {
         // find out which stream was meant to be muted/unmuted
@@ -98,4 +101,12 @@ $(()=>{
         const streamNr = parseInt(streamID[streamID.length - 1]);
         streams.value[streamNr].volume = parseInt(elem.target.value)/100;
     });
+
+    $discordDelay.on('change', ()=>{
+        voiceDelayRep.value = parseInt($discordDelay.val());
+    });
+
+    voiceDelayRep.on('change', (newVal)=>{
+        $discordDelay.val(newVal);
+    })
 });
