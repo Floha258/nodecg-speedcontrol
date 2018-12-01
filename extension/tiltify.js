@@ -155,8 +155,16 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 function setUpPusher() {
 	var tiltifyPusher = new Pusher(tiltifyApiKey, {cluster: tiltifyCluster});
 	var channel = tiltifyPusher.subscribe("campaign."+nodecg.bundleConfig.tiltify.campaign);
-	channel.bind("donation", _processRawDonation);
-	channel.bind('campaign', _processRawCampain);
+	channel.bind("donation", _processPusherDonation);
+	channel.bind('campaign', _processPusherCampain);
+}
+
+function _processPusherDonation(data) {
+	_processRawDonation(data.data);
+}
+
+function _processPusherCampain(data) {
+	_processRawCampain(data.data);
 }
 
 /**
@@ -166,6 +174,7 @@ function setUpPusher() {
  * Either pollOptionId, rewardId, challengeId or none of them are present, linking to the specified resource
  */
 function _processRawDonation(donation) {
+	nodecg.log.info("predonations:"+JSON.stringify(donation));
 	// only process completed donations
 	if (donation && donation.completedAt) {
 		nodecg.log.info("donation: "+JSON.stringify(donation));
