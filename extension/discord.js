@@ -70,7 +70,7 @@ function UpdateCommentaryChannelMembers()
 
 	if (!memberArray || memberArray.length < 1)
 	{
-		voiceActivity.value.members.length = 0;
+		voiceActivity.value.members = [];
 		return;
 	}
 
