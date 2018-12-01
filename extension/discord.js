@@ -127,17 +127,18 @@ function commandChannel(message) {
 
 					if (!voiceActivity.value.members || voiceActivity.value.members.length < 1)
 						{return;}
+					setTimeout(()=>{
+						voiceActivity.value.members.find(voiceMember => {
 
-					voiceActivity.value.members.find(voiceMember => {
+							if (voiceMember.id == user.id) {
+								voiceMember.isSpeaking = speaking; // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
+								return true;
+							}
 
-						if (voiceMember.id == user.id) {
-							setTimeout(()=>voiceMember.isSpeaking = speaking, voiceDelayRep.value); // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
-							return true;
-						}
+							return false;
 
-						return false;
-
-					});
+						});
+					},voiceDelayRep.value);
 				});
 			});
 
