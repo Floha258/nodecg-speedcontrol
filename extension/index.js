@@ -25,9 +25,10 @@ module.exports = function(nodecg) {
 	require('./esacontroller');
 	require('./ffzws');
 	require('./g4g');
-	require('./srcomdonations');
-	require('./tiltify');
+	//require('./srcomdonations');
+	//require('./tiltify');
 	require('./bingosync');
+	require('./gdq-donationtracker');
 
 	if (nodecg.bundleConfig.discord) {
 		if (!nodecg.bundleConfig.discord.test) {
