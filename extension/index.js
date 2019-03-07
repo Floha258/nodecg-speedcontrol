@@ -18,5 +18,5 @@ module.exports = function(nodecg) {
 	require('./g4g');
 	require('./srcomdonations');
 	require('./tiltify');
-	require('./obs');
+        require('./obs')(nodecg);
 }
