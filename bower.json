@@ -10,6 +10,7 @@
     "async": "^2.4.1",
     "webcomponentsjs": "^1.0.14",
     "paper-styles": "^2.0.0",
-    "paper-button": "^2.0.0"
+    "paper-button": "^2.0.0",
+    "nodecg-widget-obs": "npm:nodecg-widget-obs#^2.0.5"
   }
 }

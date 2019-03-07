@@ -8,8 +8,9 @@
   ],
   "dependencies": {
     "async": "^2.4.1",
-    "clone": "^2.1.1",
+    "bower-npm-resolver": "^0.10.0",
     "cheerio": "^1.0.0-rc.1",
+    "clone": "^2.1.1",
     "deep-equal": "^1.0.1",
     "discord.js": "^11.4.2",
     "graphql-request": "^1.6.0",
@@ -18,6 +19,7 @@
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "needle": "^1.6.0",
+    "nodecg-utility-obs": "^5.0.6",
     "pusher-js": "^4.3.1",
     "request": "^2.73.0",
     "request-promise": "^4.2.1",
@@ -155,6 +157,13 @@
             "type": "dismiss"
           }
         ]
+      },
+      {
+        "name": "obs-control",
+        "title": "OBS Remote Control",
+        "file": "obs.html",
+        "width": 3,
+        "headerColor": "#008BB9"
       }
     ]
   }
