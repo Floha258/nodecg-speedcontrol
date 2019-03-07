@@ -26,7 +26,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 	if (enableTiltifyTestDonations) {
 
 		// testing, create fake donations and polls
-		const testWords = ['Lorem', "Ipsum", "Dolar","Si","Achmet","Greetings","From","Germany"];
+		const testWords = ['Lorem', "Ipsum", "Dolar","Si","Achmet","Greetings","From","Germany","consetetur","sadipscing","elitr","sed","diam","nonumy","eirmod","hi","this","is","a","secret","message","please","help","me"];
 		function randSentence(minWords, maxWords) {
 			var words = minWords + Math.floor((maxWords-minWords)*Math.random());
 			var sentence = "";
@@ -92,7 +92,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 				testDonations.pop();
 			}
 			var donationAmount = Math.floor(Math.random()*200 + 1);
-			var testDono = {"id":did,"amount":donationAmount,"name":randSentence(1,2),"comment":randSentence(3,7),
+			var testDono = {"id":did,"amount":donationAmount,"name":randSentence(1,2),"comment":randSentence(20,40),
 				"completedAt":Date.now(),"sustained":false};
 			
 			// this donation either goes to nothing, a challenge or a poll
@@ -115,7 +115,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 			testCampaign.amountRaised += donationAmount;
 			_processRawDonation(testDono);
 			did++;
-			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
+			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 60000));
 		}
 		nodecg.listenFor('refreshTiltify', doUpdate);
 		sendFakeDonation();
