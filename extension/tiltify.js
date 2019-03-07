@@ -115,12 +115,10 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 			testCampaign.amountRaised += donationAmount;
 			_processRawDonation(testDono);
 			did++;
-<<<<<<< HEAD
-			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 60000));
-=======
+
 			// schedule timeout for the next fake donation, between 2 and 12 secs
 			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
->>>>>>> upstream/master
+
 		}
 		nodecg.listenFor('refreshTiltify', doUpdate);
 		sendFakeDonation();
