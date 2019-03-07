@@ -12,6 +12,9 @@ const voiceActivity = nodecg.Replicant('voiceActivity', {
 	}, persistent: true
 });
 
+// delay in ms
+const voiceDelayRep = nodecg.Replicant('voiceDelay', {defaultValue: 0, persistent: true});
+
 // Discord API
 const bot = new Discord.Client();
 const botToken = nodecg.bundleConfig.discord.token;
@@ -67,7 +70,7 @@ function UpdateCommentaryChannelMembers()
 
 	if (!memberArray || memberArray.length < 1)
 	{
-		voiceActivity.value.members.length = 0;
+		voiceActivity.value.members = [];
 		return;
 	}
 
@@ -124,17 +127,18 @@ function commandChannel(message) {
 
 					if (!voiceActivity.value.members || voiceActivity.value.members.length < 1)
 						{return;}
+					setTimeout(()=>{
+						voiceActivity.value.members.find(voiceMember => {
 
-					voiceActivity.value.members.find(voiceMember => {
+							if (voiceMember.id == user.id) {
+								voiceMember.isSpeaking = speaking; // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
+								return true;
+							}
 
-						if (voiceMember.id == user.id) {
-							voiceMember.isSpeaking = speaking; // Delay this by streamleader delay/current obs timeshift delay if its activated with setTimeout
-							return true;
-						}
+							return false;
 
-						return false;
-
-					});
+						});
+					},voiceDelayRep.value);
 				});
 			});
 

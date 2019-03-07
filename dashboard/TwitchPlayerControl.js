@@ -5,6 +5,14 @@ $(()=>{
     var soundOnTwitchStream = nodecg.Replicant('sound-on-twitch-stream', bundleName, {'persistent':false,'defaultValue':-1});
     // main control panel for streams
     var streams = nodecg.Replicant('twitch-streams', bundleName);
+    // stores all quality options available
+    const streamQualities = nodecg.Replicant('stream-qualities', bundleName, {'defaultValue':[[],[],[],[]]});
+    const streamDelay = nodecg.Replicant('stream-delay',bundleName,{'defaultValue':[0,0,0,0], 'persistent':false});
+
+    const delayDisplays = $('.delay-display');
+
+    const $discordDelay = $('#discord-delay');
+    const voiceDelayRep = nodecg.Replicant('voiceDelay', bundleName, {defaultValue: 0, persistent: true});
 
     // handle muting/unmuting
     $('.stream-mute').click((elem)=> {
@@ -59,9 +67,46 @@ $(()=>{
         }
     });
 
+    streamQualities.on('change', (newQualities, oldQualities) => {
+        newQualities.forEach((value, index)=>{
+            // if the size is the same probably nothing has changed
+            if (oldQualities && value.length == oldQualities[index].length) {
+                return;
+            }
+            let optionsHtml = '';
+            value.forEach((quality)=>{
+                optionsHtml += '<option value="'+quality.group+'">'+quality.group+'</option>';
+            });
+            const qualSelect = $('#stream-control'+index).find('.quality-select');
+            qualSelect.html(optionsHtml);
+            qualSelect.val(streams.value[index].quality);
+        })
+    });
+
+    streamDelay.on('change',(newVals)=>{
+        delayDisplays.each((index, element)=>{
+            $(element).html(newVals[index]);
+        });
+    });
+
+    $('.quality-select').on('change', (elem)=>{
+        const streamID = elem.target.parentElement.id;
+        const streamNr = parseInt(streamID[streamID.length - 1]);
+        streams.value[streamNr].quality = elem.target.value;
+        nodecg.log.info('Updated quality to '+elem.target.value);
+    });
+
     $('.stream-volume').on('input', (elem) => {
         const streamID = elem.target.parentElement.parentElement.id;
         const streamNr = parseInt(streamID[streamID.length - 1]);
         streams.value[streamNr].volume = parseInt(elem.target.value)/100;
     });
+
+    $discordDelay.on('change', ()=>{
+        voiceDelayRep.value = parseInt($discordDelay.val());
+    });
+
+    voiceDelayRep.on('change', (newVal)=>{
+        $discordDelay.val(newVal);
+    })
 });

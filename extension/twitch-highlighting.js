@@ -2,7 +2,7 @@
 var clone = require('clone');
 var moment = require('moment');
 var async = require('async');
-var gql = require('./twitch-gql');
+//var gql = require('./twitch-gql');
 var nodecg = require('./utils/nodecg-api-context').get();
 
 // Don't run the code if the feature is not enabled in the config.

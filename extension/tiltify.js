@@ -54,7 +54,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 				"totalAmountRaised":0,
 				"amount":500+Math.floor(Math.random()*500),
 				"campaignId":12345,
-				"active":true,
+				"active":Math.random()<0.5,
 				"endsAt":Date.now()+3600000,// ends in an hour
 				"createdAt":Date.now(),
 				"updatedAt":Date.now()});
@@ -115,7 +115,12 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 			testCampaign.amountRaised += donationAmount;
 			_processRawDonation(testDono);
 			did++;
+<<<<<<< HEAD
 			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 60000));
+=======
+			// schedule timeout for the next fake donation, between 2 and 12 secs
+			setTimeout(sendFakeDonation, Math.floor(Math.random() * 10000 + 2000));
+>>>>>>> upstream/master
 		}
 		nodecg.listenFor('refreshTiltify', doUpdate);
 		sendFakeDonation();
@@ -154,8 +159,16 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.tiltify && nodecg.bundleConfig.ti
 function setUpPusher() {
 	var tiltifyPusher = new Pusher(tiltifyApiKey, {cluster: tiltifyCluster});
 	var channel = tiltifyPusher.subscribe("campaign."+nodecg.bundleConfig.tiltify.campaign);
-	channel.bind("donation", _processRawDonation);
-	channel.bind('campaign', _processRawCampain);
+	channel.bind("donation", _processPusherDonation);
+	channel.bind('campaign', _processPusherCampain);
+}
+
+function _processPusherDonation(data) {
+	_processRawDonation(data.data);
+}
+
+function _processPusherCampain(data) {
+	_processRawCampain(data.data);
 }
 
 /**
@@ -165,9 +178,13 @@ function setUpPusher() {
  * Either pollOptionId, rewardId, challengeId or none of them are present, linking to the specified resource
  */
 function _processRawDonation(donation) {
-	nodecg.log.info("donation: "+JSON.stringify(donation));
-	nodecg.sendMessage('newDonation', donation);
-	doUpdate();
+	nodecg.log.info("predonations:"+JSON.stringify(donation));
+	// only process completed donations
+	if (donation && donation.completedAt) {
+		nodecg.log.info("donation: "+JSON.stringify(donation));
+		nodecg.sendMessage('newDonation', donation);
+		doUpdate();
+	}
 }
 
 function doUpdate() {

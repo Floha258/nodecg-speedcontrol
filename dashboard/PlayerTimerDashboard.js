@@ -8,6 +8,7 @@ $(function () {
     var lastTimerState = "";
 // Replicant initialization
 
+    var finishFlags = nodecg.Replicant('finishFlags', {defaultValue:[{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},]});
     var stopWatchReplicant = nodecg.Replicant('stopwatch');
     stopWatchReplicant.on('change', function (newVal, oldVal) {
         if (!newVal) return;
@@ -96,6 +97,27 @@ $(function () {
     });
 
     var activeRunStartTime = nodecg.Replicant('activeRunStartTime');
+
+    function finishFlagForIndex(index) {
+        // count finishers to set medal
+        var finishers = 0;
+        for(var i=0;i<finishFlags.value.length;i++) {
+            if (finishFlags.value[i].hasFinished) {
+                finishers++;
+            }
+        }
+        if (finishers < 3) {
+            finishFlags.value[index].finishMedal = finishers + 1;
+        } else {
+            finishFlags.value[index].finishMedal = null;
+        }
+        finishFlags.value[index].finishTime = stopWatchReplicant.value.time;
+        finishFlags.value[index].hasFinished = true;
+    }
+
+    function unfinishFlagForIndex(index) {
+        finishFlags.value[index].hasFinished = false;
+    }
 
     function updateSplitTimerTextColor(timerArray) {
         $.each(timerArray, function(index, value){
@@ -244,9 +266,9 @@ $(function () {
                 // the timer on the second screen has to be on the third
                 // Maybe I will make this not ugly some day lmao
                 if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
-                    nodecg.sendMessage('timerSplit', 2);
+                    finishFlagForIndex(2);
                 } else {
-                    nodecg.sendMessage('timerSplit', index);
+                    finishFlagForIndex(index);
                 }
                 splitTimer(index);
             });
@@ -254,9 +276,9 @@ $(function () {
                 var index = $(this).attr('id').replace('resetTime', '');
                 // see above
                 if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
-                    nodecg.sendMessage('timerReset', 2);
+                    unfinishFlagForIndex(2);
                 } else {
-                    nodecg.sendMessage('timerReset', index);
+                    unfinishFlagForIndex(index);
                 }
                 unSplitTimer(index);
             });
@@ -330,6 +352,9 @@ $(function () {
                 }
             };
             $('#play').button("option", options);
+        }
+        for(var i=0;i<4;i++) {
+            unfinishFlagForIndex(i);
         }
     }
 

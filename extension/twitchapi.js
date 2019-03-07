@@ -19,10 +19,16 @@ var accessToken = nodecg.Replicant('twitchAccessToken');
 var refreshToken = nodecg.Replicant('twitchRefreshToken');
 var twitchChannelInfo = nodecg.Replicant('twitchChannelInfo');
 var twitchChannelID = nodecg.Replicant('twitchChannelID');
-var twitchChannelName = nodecg.Replicant('twitchChannelName');
+
+// logged in user might just have edit rights for this channel, not be this channel
+const twitchChannelName = nodecg.bundleConfig.twitch.channel;
 
 if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twitch.enable) {
 	nodecg.log.info('Twitch integration is enabled.');
+	if (!nodecg.bundleConfig.twitch.channel) {
+		nodecg.log.error('No twitch channel given!');
+		return;
+	}
 	
 	requestOptions.headers['Client-ID'] = nodecg.bundleConfig.twitch.clientID;
 	if (accessToken.value) requestOptions.headers['Authorization'] = 'OAuth '+accessToken.value;
@@ -30,15 +36,23 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 	// If we have an access token already, check if it's still valid and refresh if needed.
 	if (accessToken.value && accessToken.value !== '') {
 		checkTokenValidity(() => {
-			nodecg.listenFor('updateChannel', updateChannel);
-			nodecg.listenFor('playTwitchAd', playTwitchAd);
-			nodecg.listenFor('twitchGameSearch', gameSearch);
-			
 			requestOptions.headers['Authorization'] = 'OAuth '+accessToken.value;
-			
-			getCurrentChannelInfo();
-			require('./twitch-highlighting');
-			require('./twitch-gql');
+			// if the token is valid get the channelid for the channel in the settings that
+			// has to be update & such
+			needle.get('https://api.twitch.tv/kraken/users?login='+twitchChannelName, requestOptions, (err, resp) => {
+				// Get user ID from Twitch, because v5 requires this for everything.
+				twitchChannelID.value = resp.body.users[0]._id;
+				clearTimeout(channelInfoTimeout);
+				getCurrentChannelInfo();
+				
+				// Setting up listeners.
+				nodecg.listenFor('updateChannel', updateChannel);
+				nodecg.listenFor('playTwitchAd', playTwitchAd);
+				nodecg.listenFor('twitchGameSearch', gameSearch);
+				
+				require('./twitch-highlighting');
+				//require('./twitch-gql');
+			});
 		});
 	}
 	
@@ -58,10 +72,9 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 			refreshToken.value = resp.body.refresh_token;
 			requestOptions.headers['Authorization'] = 'OAuth '+resp.body.access_token;
 			
-			needle.get('https://api.twitch.tv/kraken', requestOptions, (err, resp) => {
+			needle.get('https://api.twitch.tv/kraken/users?login='+twitchChannelName, requestOptions, (err, resp) => {
 				// Get user ID from Twitch, because v5 requires this for everything.
-				twitchChannelID.value = resp.body.token.user_id;
-				twitchChannelName.value = resp.body.token.user_name;
+				twitchChannelID.value = resp.body.users[0]._id;
 				clearTimeout(channelInfoTimeout);
 				getCurrentChannelInfo();
 				
@@ -71,7 +84,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 				nodecg.listenFor('twitchGameSearch', gameSearch);
 				
 				require('./twitch-highlighting');
-				require('./twitch-gql');
+				//require('./twitch-gql');
 			});
 		});
 	});
