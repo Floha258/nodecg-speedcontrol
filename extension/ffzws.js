@@ -1,7 +1,7 @@
 'use strict';
 
 var WebSocket = require('ws');
-var tmi = require('tmi.js');
+var TwitchJS = require('twitch-js');
 var async = require('async');
 
 var nodecg = require('./utils/nodecg-api-context').get();
@@ -24,10 +24,13 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 	// Waits until we have the Twitch access code before doing anything.
 	twitchChannelName = nodecg.Replicant('twitchChannelName');
 	var accessTokenReplicant = nodecg.Replicant('twitchAccessToken');
-	accessTokenReplicant.on('change', function(newValue, oldValue) {
-		accessToken = newValue;
+	twitchChannelName.on('change', function(newValue, oldValue) {
+		accessToken = accessTokenReplicant.value;
 		if (newValue && !oldValue)
 			connectToWS(() => {/* connection to ws done */});
+	});
+	accessTokenReplicant.on('change', (newVal, oldVal) => {
+		accessToken = newVal;
 	});
 }
 
@@ -48,7 +51,7 @@ function connectToWS(callback) {
 
 	// Catching any errors with the connection. The "close" event is also fired if it's a disconnect.
 	ffzWS.on('error', function(error) {
-		nodecg.log.warn("Error occurred on the FrankerFaceZ connection, see below:");
+		nodecg.log.warn("Error occurred on the FrankerFaceZ connection:");
 		nodecg.log.warn(error);
 	});
 
@@ -170,7 +173,7 @@ function sendAuthThroughTwitchChat(auth) {
 		}
 	};
 
-	var client = new tmi.client(options);
+	var client = new TwitchJS.client(options);
 	client.connect();
 
 	client.once('connected', function(address, port) {

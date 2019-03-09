@@ -36,23 +36,14 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 	// If we have an access token already, check if it's still valid and refresh if needed.
 	if (accessToken.value && accessToken.value !== '') {
 		checkTokenValidity(() => {
+			nodecg.listenFor('updateChannel', updateChannel);
+			nodecg.listenFor('playTwitchAd', playTwitchAd);
+			nodecg.listenFor('twitchGameSearch', gameSearch);
+			
 			requestOptions.headers['Authorization'] = 'OAuth '+accessToken.value;
-			// if the token is valid get the channelid for the channel in the settings that
-			// has to be update & such
-			needle.get('https://api.twitch.tv/kraken/users?login='+twitchChannelName, requestOptions, (err, resp) => {
-				// Get user ID from Twitch, because v5 requires this for everything.
-				twitchChannelID.value = resp.body.users[0]._id;
-				clearTimeout(channelInfoTimeout);
-				getCurrentChannelInfo();
-				
-				// Setting up listeners.
-				nodecg.listenFor('updateChannel', updateChannel);
-				nodecg.listenFor('playTwitchAd', playTwitchAd);
-				nodecg.listenFor('twitchGameSearch', gameSearch);
-				
-				require('./twitch-highlighting');
-				//require('./twitch-gql');
-			});
+			
+			getCurrentChannelInfo();
+			nodecg.sendMessage('twitchAPIReady');
 		});
 	}
 	
@@ -72,9 +63,10 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 			refreshToken.value = resp.body.refresh_token;
 			requestOptions.headers['Authorization'] = 'OAuth '+resp.body.access_token;
 			
-			needle.get('https://api.twitch.tv/kraken/users?login='+twitchChannelName, requestOptions, (err, resp) => {
+			needle.get('https://api.twitch.tv/kraken', requestOptions, (err, resp) => {
 				// Get user ID from Twitch, because v5 requires this for everything.
-				twitchChannelID.value = resp.body.users[0]._id;
+				twitchChannelID.value = resp.body.token.user_id;
+				twitchChannelName.value = resp.body.token.user_name;
 				clearTimeout(channelInfoTimeout);
 				getCurrentChannelInfo();
 				
@@ -83,8 +75,7 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 				nodecg.listenFor('playTwitchAd', playTwitchAd);
 				nodecg.listenFor('twitchGameSearch', gameSearch);
 				
-				require('./twitch-highlighting');
-				//require('./twitch-gql');
+				nodecg.sendMessage('twitchAPIReady');
 			});
 		});
 	});
@@ -227,8 +218,8 @@ function gameSearch(searchQuery, callback) {
 // true if no issues, false if there were any
 function handleResponse(err, resp) {
 	if (err || resp.statusCode !== 200 || !resp || !resp.body) {
-		nodecg.log.warn('Error occurred in communication with twitch, look below');
-		nodecg.log.warn(err);
+		nodecg.log.warn('Error occurred in communication with Twitch:');
+		if (err) nodecg.log.warn(err);
 		if (resp && resp.body) nodecg.log.warn(JSON.stringify(resp.body));
 		return false;
 	}

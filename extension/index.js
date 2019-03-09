@@ -18,15 +18,11 @@ module.exports = function(nodecg) {
     ]});
 
 	// Other extension files we need to load.
-	require('./stopwatch');
+	require('./run-data');
+	require('./timer');
 	require('./horaro-import');
 	require('./twitchapi');
-	require('./csscreater');
-	require('./esacontroller');
 	require('./ffzws');
-	require('./g4g');
-	//require('./srcomdonations');
-	//require('./tiltify');
 	require('./bingosync');
 	require('./gdq-donationtracker');
 
@@ -47,5 +43,10 @@ module.exports = function(nodecg) {
 				{id: 3, name: 'POGGERS', avatar: defaultAvatar, isSpeaking: false},
 			]};
 		}
+	}
+
+	// Basic return, currently to expose the set Twitch client ID to other extensions.
+	return {
+		twitchClientID: nodecg.bundleConfig.twitch.clientID
 	}
 }

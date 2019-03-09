@@ -9,7 +9,7 @@ $(function () {
 // Replicant initialization
 
     var finishFlags = nodecg.Replicant('finishFlags', {defaultValue:[{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},{hasFinished: false, finishTime: '', finishMedal: ''},]});
-    var stopWatchReplicant = nodecg.Replicant('stopwatch');
+    var stopWatchReplicant = nodecg.Replicant('timer');
     stopWatchReplicant.on('change', function (newVal, oldVal) {
         if (!newVal) return;
         var time = newVal.time || '88:88:88';
@@ -71,20 +71,9 @@ $(function () {
     runDataActiveRunReplicant.on('change', function( newValue, oldValue) {
         if( typeof newValue !== 'undefined' && newValue !== '' ) {
             moreThanOneTeam = newValue.teams.length > 1;
-              //|| (newValue.players.length >=2) && newValue.teams.length == 1);
             playerTimer_UpdateTimers(newValue);
         }
     });
-
-    var runDataActiveRunRunnerListReplicant = nodecg.Replicant("runDataActiveRunRunnerList");
-    // runDataActiveRunRunnerListReplicant.on("change", function (newValue, oldValue) {
-    //     if (typeof newValue !== 'undefined' && newValue != '' ) {
-    //         if (typeof runDataActiveRunReplicant.value !== 'undefined') {
-    //           playerTimer_UpdateTimers(runDataActiveRunReplicant.value);
-    //         }
-    //
-    //     }
-    // });
 
     var finishedTimersReplicant = nodecg.Replicant('finishedTimers');
     finishedTimersReplicant.on('change', function(newValue, oldValue) {
@@ -95,8 +84,6 @@ $(function () {
             }
         }
     });
-
-    var activeRunStartTime = nodecg.Replicant('activeRunStartTime');
 
     function finishFlagForIndex(index) {
         // count finishers to set medal
@@ -136,7 +123,6 @@ $(function () {
         resetSplitTimerTextColor(1);
         resetSplitTimerTextColor(2);
         resetSplitTimerTextColor(3);
-        activeRunStartTime.value = 0;
     }
 
     function splitTimer(splitIndex) {
@@ -155,7 +141,6 @@ $(function () {
 
         if (stoppedTimers >= splitsBeforeStoppingMainTimer) {
             nodecg.sendMessage("finishTime");
-            nodecg.sendMessage("runEnded")
         }
 
         finishedTimersReplicant.value = splitTimes;
@@ -183,7 +168,7 @@ $(function () {
         var splitTime = {};
         splitTime.index = index;
         splitTime.time = stopWatchReplicant.value.time;
-        splitTime.name = runDataActiveRunReplicant.value.teams[index].name;
+        splitTime.id = runDataActiveRunReplicant.value.teams[index].id;
         return splitTime;
     }
 
@@ -244,15 +229,18 @@ $(function () {
     }
 
     function playerTimer_UpdateTimers(run) {
-        var players = run.players;
         var toolbarPlayerSpecificHtml = '';
         if ( run.teams.length > 1 ) {
-          $.each(run.teams, function( index, value ) {
+          $.each(run.teams, function( index, team ) {
+			if (team.name) var teamName = team.name;
+			else if (team.players.length > 1) var teamName = `Team ${index+1}`
+			else var teamName = team.players[0].name;
+
             toolbarPlayerSpecificHtml += "" +
                 '<div id="toolbar' + index + '" class="ui-widget-header ui-corner-all">' +
                 '<button id="split' + index + '" class="personalSplitButton">split</button>' +
                 '<button id="resetTime' + index + '" class="personalResetButton">reset</button>' +
-                " " + value.name +
+                " " + teamName +
                 '</div>';
           });
         }
@@ -261,26 +249,26 @@ $(function () {
 			      $('#playerTimersHeader').show();
 
             $('.personalSplitButton').click(function () {
-                var index = $(this).attr('id').replace('split', '');
-                // kinda ugly: if there is a race with more people in team 1 and team 2 exists
-                // the timer on the second screen has to be on the third
-                // Maybe I will make this not ugly some day lmao
-                if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
+				var index = $(this).attr('id').replace('split', '');
+				var id = runDataActiveRunReplicant.value.teams[index].id;
+                nodecg.sendMessage('teamFinishTime', id);
+                if (index == 1 && runDataActiveRunReplicant.value.teams[0].players.length == 2) {
                     finishFlagForIndex(2);
                 } else {
                     finishFlagForIndex(index);
                 }
-                splitTimer(index);
+                splitTimer(id);
             });
             $('.personalResetButton').click(function () {
-                var index = $(this).attr('id').replace('resetTime', '');
-                // see above
-                if (index == 1 && runDataActiveRunReplicant.value.teams[0].members.length == 2) {
+				var index = $(this).attr('id').replace('resetTime', '');
+				var id = runDataActiveRunReplicant.value.teams[index].id;
+                nodecg.sendMessage('teamFinishTimeUndo', id);
+                if (index == 1 && runDataActiveRunReplicant.value.teams[0].players.length == 2) {
                     unfinishFlagForIndex(2);
                 } else {
                     unfinishFlagForIndex(index);
                 }
-                unSplitTimer(index);
+                unSplitTimer(id);
             });
 
             var shouldBeDisabled = true;
@@ -320,9 +308,6 @@ $(function () {
             });
 
             nodecg.sendMessage("startTime");
-            if (activeRunStartTime.value === 0) {
-                nodecg.sendMessage("runStarted");
-            }
             options = {
                 label: "pause",
                 icons: {
@@ -360,7 +345,6 @@ $(function () {
 
     function OnStop() {
         nodecg.sendMessage("finishTime");
-        nodecg.sendMessage("runEnded", 0);
         if ($('#play').text().trim() === "pause") {
             var options = {
                 label: "play",
@@ -425,14 +409,15 @@ $(function () {
             OnStop();
         })
 
-        nodecg.listenFor("split_timer", "nodecg-speedcontrol", function(id) {
+        nodecg.listenFor("split_timer", "nodecg-speedcontrol", function(index) {
             console.log("SPLIT-EVENT");
-            console.log(id);
+			console.log(index);
+			var id = runDataActiveRunReplicant.value.teams[index].id;
             if (moreThanOneTeam) {
-                nodecg.sendMessage('timerSplit', id);
+                nodecg.sendMessage('teamFinishTime', id);
             }
-            nodecg.sendMessage('timerSplit', id);
-            splitTimer(id);
+            nodecg.sendMessage('teamFinishTime', id);
+            splitTimer(index);
         })
     }
 

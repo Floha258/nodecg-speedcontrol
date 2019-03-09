@@ -1,301 +1,370 @@
-'use strict';
-$(function() {
-	// Declaring variables/replicants.
-	var runDataArrayReplicant = nodecg.Replicant('runDataArray');
-	var runDataActiveRunReplicant = nodecg.Replicant('runDataActiveRun');
-	var runDataLastIDReplicant = nodecg.Replicant('runDataLastID');
-	var defaultSetupTimeReplicant = nodecg.Replicant('defaultSetupTime', {defaultValue: 0});
-	var runDataEditRunReplicant = nodecg.Replicant('runDataEditRun', {defaultValue: -1, persistent: false});
-	var streamsReplicant = nodecg.Replicant('twitch-streams');
-	var runInfo = {};
-	var currentRunID = -1;
-	
-	// Dialog related elements for ease of access to change parts later.
-	var dialogElement = $(nodecg.getDialog('run-info'));
-	var dialogTitle = $('h2', dialogElement);
-	var dialogConfirmButton = $('paper-button[dialog-confirm]', dialogElement);
-	var dialogDismissButton = $('paper-button[dialog-dismiss]', dialogElement);
-	
-	// When the replicant used to store the run we want to edit is changed.
-	runDataEditRunReplicant.on('change', (newVal, oldVal) => {
-		if (newVal === undefined || newVal === null) return;
-		currentRunID = newVal;
-		
-		// If we want to add a new run, the value is -1.
-		if (newVal < 0) {
-			resetInputs();
-			dialogTitle.text('Add New Run');
-			dialogConfirmButton.text('add run');
-		}
-		
-		else {
-			dialogTitle.text('Edit Run');
-			dialogConfirmButton.text('save changes');
-			
-			runInfo = runDataArrayReplicant.value[getRunIndexInRunDataArray(newVal)];
-			$('#allTeamsInput').html(''); // Remove blank data fields.
-			
-			// Populate fields with relevant data.
-			$('#gameInput').val(runInfo.game);
-			$('#gameTwitchInput').val(runInfo.gameTwitch);
-			$('#categoryInput').val(runInfo.category);
-			$('#estimateInput').val(runInfo.estimate);
-			$('#systemInput').val(runInfo.system);
-			$('#regionInput').val(runInfo.region);
-			$('#setupTimeInput').val(runInfo.setupTime);
-			
-			// Currently only supporting the first runner in a team.
-			var teamData = runInfo.teams;
-			if (teamData.length === 0) {
-				// nothing
-			} else {
-				for (var i = 0; i < teamData.length; i++) {
-					var team = teamData[i];
-					addTeamFields(team);
-				}
-			}
+var runDataCurrent,
+	dialog,
+	runID,
+	runDataArray,
+	defaultSetupTime,
+	runDataLastID,
+	runDataActiveRun,
+	defaultRunDataObject,
+	customData,
+	defaultTeamObject,
+	defaultPlayerObject,	
+	runDataInputsContainer,
+	teamsContainer;
+
+// All possible general run data inputs available.
+var runDataInputs = [
+	{id: 'game', placeholder: 'Game'},
+	{id: 'gameTwitch', placeholder: 'Game (Twitch)'},
+	{id: 'category', placeholder: 'Category'},
+	{id: 'estimate', placeholder: 'Estimate (HH:MM:SS)'},
+	{id: 'system', placeholder: 'System'},
+	{id: 'region', placeholder: 'Region'},
+	{id: 'release', placeholder: 'Released'},
+	{id: 'setupTime', placeholder: 'Setup Time (HH:MM:SS)'}
+	//{id: 'customExample', placeholder: 'Custom Example', custom: true}
+];
+
+// All possible player data inputs available.
+var playerDataInputs = [
+	{id: 'name', placeholder: 'Name'},
+	{id: 'twitch', placeholder: 'Twitch Username', social: true},
+	{id: 'country', placeholder: 'Country Code'},
+];
+
+$(() => {
+	dialog = nodecg.getDialog('run-info');
+	runDataArray = nodecg.Replicant('runDataArray');
+	defaultSetupTime = nodecg.Replicant('defaultSetupTime');
+	runDataLastID = nodecg.Replicant('runDataLastID');
+	runDataActiveRun = nodecg.Replicant('runDataActiveRun');
+	defaultRunDataObject = nodecg.Replicant('defaultRunDataObject');
+	defaultTeamObject = nodecg.Replicant('defaultTeamObject');
+	defaultPlayerObject = nodecg.Replicant('defaultPlayerObject');
+	runDataInputsContainer = $('#runDataInputs');
+	teamsContainer = $('#teamsContainer');
+
+	// Add custom data to the possible run data inputs.
+	customData = nodecg.bundleConfig.schedule.customData || [];
+	customData.forEach((customDataElem) => {
+		if (customDataElem.key && customDataElem.name) {
+			runDataInputs.push({
+				id: customDataElem.key,
+				placeholder: customDataElem.name,
+				custom: true
+			});
 		}
 	});
-	
-	// For when the "add/edit run" button is pressed.
+
+	// Listener for the "Add Run/Save Changes" button.
 	document.addEventListener('dialog-confirmed', () => {
-		// Pulling data from the form to construct the run data object.
-		var newRunData = {};
-		
-		newRunData.game = $('#gameInput').val();
-		
-		// Ghetto prompt if verification fails (for now).
-		// Only picks up on checking if a game name is set; other things are just dropped for now.
-		if (!newRunData.game.length) {
-			alert('Run not saved because there was no game name provided.');
-			return;
-		}
-		
-		newRunData.gameTwitch = $('#gameTwitchInput').val();
-		newRunData.category = $('#categoryInput').val();
-		
-		// Estimate processing.
-		var estimate = $('#estimateInput').val();
-		if (estimate.match(/^(\d+:)?(?:\d{1}|\d{2}):\d{2}$/) || !isNaN(estimate)) {
-			var estimateInMS = timeToMS($('#estimateInput').val());
-			newRunData.estimate = msToTime(estimateInMS);
-			newRunData.estimateS = estimateInMS/1000;
-		}
-		else {
-			newRunData.estimate = msToTime(0);
-			newRunData.estimateS = 0;
-		}
-		
-		// Setup time processing.
-		var setupTime = $('#setupTimeInput').val();
-		if (setupTime.match(/^(\d+:)?(?:\d{1}|\d{2}):\d{2}$/) || !isNaN(setupTime)) {
-			var setupTimeInMS = timeToMS($('#setupTimeInput').val());
-			newRunData.setupTime = msToTime(setupTimeInMS);
-			newRunData.setupTimeS = setupTimeInMS/1000;
-		}
-		else {
-			newRunData.setupTime = msToTime(0);
-			newRunData.setupTimeS = 0;
-		}
-		
-		newRunData.system = $('#systemInput').val();
-		newRunData.region = $('#regionInput').val();
-		newRunData.teams = [];
-		newRunData.players = [];
-		newRunData.screens = []; // unused
-		newRunData.cameras = []; // unused
-		newRunData.customData = {};
-		newRunData.scheduled = undefined;
-		newRunData.scheduledS = 0;
-		
-		// Going through every team
-		$('.teamInput').each(function(index) {
-			var $this = $(this);
-			var teamName = $this.find('.teamNameInput').val();
-			if (!teamName) return;
-
-			var team = {
-				name: teamName,
-				custom: false,
-				members: []
-			};
-
-			// get all players in the team
-			// Going through all the player detail inputs to continue the above.
-			$this.find('.playerInput').each(function(index) {
-				var playerName = $(this).find('.playerNameInput').val();
-				if (!playerName.length) return true; // Skip this player.
-				
-				// At some point we will try and pull these from speedrun.com.
-				var twitchURI = $(this).find('.playerStreamInput').val();
-				var region = $(this).find('.playerRegionInput').val();
-				
-				var memberObj = {
-					names: {
-						international: playerName
-					},
-					twitch: {
-						uri: (twitchURI.length)?twitchURI:undefined
-					},
-					team: team.name,
-					region: (region.length)?region:undefined
-				};
-				
-				team.members.push(memberObj);
-				newRunData.players.push(memberObj);
-			});
-			newRunData.teams.push(team);
-		});
-		
-
-		// Add back the custom data if this is an edit and it's needed.
-		if (runInfo && runInfo.customData)
-			newRunData.customData = runInfo.customData;
-
-		// Add back in the scheduled time data if applicable.
-		if (runInfo && runInfo.scheduled)
-			newRunData.scheduled = runInfo.scheduled;
-		if (runInfo && runInfo.scheduledS)
-			newRunData.scheduledS = runInfo.scheduledS;
-		
-		// If we're adding a new run.
-		if (currentRunID < 0) {
-			newRunData.runID = runDataLastIDReplicant.value;
-			runDataLastIDReplicant.value++;
-			if (!runDataArrayReplicant.value) // If there we no runs yet, make the array.
-				runDataArrayReplicant.value = [newRunData];
-			else
-				runDataArrayReplicant.value.push(newRunData);
-		}
-		
-		// If an old run is being edited.
-		else {
-			newRunData.runID = runInfo.runID;
-			runDataArrayReplicant.value[getRunIndexInRunDataArray(runInfo.runID)] = newRunData;
-			
-			// If the run being edited is the currently active run, update those details too.
-			if (runDataActiveRunReplicant.value && runInfo.runID == runDataActiveRunReplicant.value.runID) {
-				runDataActiveRunReplicant.value = newRunData;
-				// and update the streams// grab all runners
-				var index = 0;
-				for (index in newRunData.players) {
-					const curPlayerTwitch = newRunData.players[index].twitch;
-					if (!curPlayerTwitch || !curPlayerTwitch.uri) {
-						nodecg.log.error('Twitch name for player '+index+' missing!');
-						streamsReplicant.value[index].paused = true;
-						streamsReplicant.value[index].hidden = true;
-						continue;
-					}
-					const match = curPlayerTwitch.uri.match(/https?:\/\/www.twitch.tv\/(.*)/);
-					if (match && match[1]) {
-						streamsReplicant.value[index].channel = match[1];
-						streamsReplicant.value[index].hidden = false;
-					}
-				}
-				index++;
-				// hide/mute/stop all other streams
-				while (index < 4) {
-					streamsReplicant.value[index].paused = true;
-					streamsReplicant.value[index].hidden = true;
-					index++;
-				}
-			}
-		}
-		
-		runDataEditRunReplicant.value = -1;
-		resetInputs();
+		saveRun();
+		cleanUp();
 	});
-	
-	// When the cancel/close button is pressed.
+
+	// Listener for the "Cancel" button, or clicking outside the dialog.
 	document.addEventListener('dialog-dismissed', () => {
-		runDataEditRunReplicant.value = -1;
-		resetInputs();
+		cleanUp();
 	});
-	
-	// Needs moving to a seperate file; this is copy/pasted in a few places.
-	// Gets index of the run in the array by the unique ID given to the run.
-	function getRunIndexInRunDataArray(runID) {
-		if (!runDataArrayReplicant.value) return -1;
-		for (var i = 0; i < runDataArrayReplicant.value.length; i++) {
-			if (runDataArrayReplicant.value[i].runID === runID) {
-				return i;
+
+	// The "Add Team" button will add the extra empty elements to the end.
+	$('.addTeam').on('click', () => {
+		var teamElement = addTeam();
+		$('.playersContainer', teamElement).append(addPlayer());
+		teamsContainer.append(teamElement);
+		updateTeamTitles();
+	});
+
+	// The "Remove Team" buttons will delete the team element (and the players inside that).
+	teamsContainer.on('click', '.removeTeam', (evt) => {
+		$(evt.target).parent().parent().remove();
+		updateTeamTitles();
+	});
+
+	// The up arrows next to the teams will move that team up the list.
+	teamsContainer.on('click', '.moveTeamUp', (evt) => {
+		var teamElem = $(evt.target).parent().parent();
+		teamElem.prev().insertAfter(teamElem);
+		updateTeamTitles();
+	});
+
+	// The down arrows next to the teams will move that team down the list.
+	teamsContainer.on('click', '.moveTeamDown', (evt) => {
+		var teamElem = $(evt.target).parent().parent();
+		teamElem.next().insertBefore(teamElem);
+		updateTeamTitles();
+	});
+
+	// The "Add Player" buttons will add an empty element.
+	teamsContainer.on('click', '.addPlayer', (evt) => {
+		$(evt.target).parent().parent().find('.playersContainer').append(addPlayer());
+	});
+
+	// The "X" button to the left of players will remove their element.
+	teamsContainer.on('click', '.removePlayer', (evt) => {
+		$(evt.target).parent().remove();
+	});
+
+	// The up arrows next to the players will move that player up the list.
+	teamsContainer.on('click', '.movePlayerUp', (evt) => {
+		var playerElem = $(evt.target).parent();
+		playerElem.prev().insertAfter(playerElem);
+	});
+
+	// The down arrows next to the players will move that player down the list.
+	teamsContainer.on('click', '.movePlayerDown', (evt) => {
+		var playerElem = $(evt.target).parent();
+		playerElem.next().insertBefore(playerElem);
+	});
+});
+
+// This function is triggered from other panels.
+function loadRun(runIDtoLoad) {
+	runID = runIDtoLoad;
+
+	// If no ID is supplied, assume we want to add a new run.
+	if (runID === undefined) {
+		runDataCurrent = clone(defaultRunDataObject.value);
+
+		// Set default setup time.
+		runDataCurrent.setupTime = msToTime(defaultSetupTime.value*1000);
+		runDataCurrent.setupTimeS = defaultSetupTime.value*1000;
+
+		$('h2', $(dialog)).text('Add New Run'); // Change Title
+		$('paper-button[dialog-confirm]', $(dialog)).text('Add Run'); // Change Confirm Button
+	}
+
+	// Else, we want to edit the run with the ID supplied.
+	else {
+		runDataCurrent = runDataArray.value[getRunIndexInRunDataArray(runID)];
+		
+		$('h2', $(dialog)).text('Edit Run'); // Change Title
+		$('paper-button[dialog-confirm]', $(dialog)).text('Save Changes'); // Change Confirm Button
+	}
+
+	// Add fields for run data, populated if the data is available.
+	for (var i = 0; i < runDataInputs.length; i++) {
+		if (runDataInputs[i].custom) var value = runDataCurrent.customData[runDataInputs[i].id];
+		else var value = runDataCurrent[runDataInputs[i].id];
+		var inputElem = $(`<input title='${runDataInputs[i].placeholder}' class='${runDataInputs[i].id}' placeholder='${runDataInputs[i].placeholder}'>`);
+		inputElem.val(value);
+		runDataInputsContainer.append(inputElem);
+	}
+
+	// If we're editing a run, add the team/player fields.
+	if (runID !== undefined) {
+		runDataCurrent.teams.forEach(team => {
+			var teamElement = addTeam(team);
+			team.players.forEach(player => $('.playersContainer', teamElement).append(addPlayer(player)));
+			teamsContainer.append(teamElement);
+		});
+	}
+
+	// If adding a run, add a blank team with a blank player for ease of use.
+	else {
+		var teamElement = addTeam();
+		$('.playersContainer', teamElement).append(addPlayer());
+		teamsContainer.append(teamElement);
+	}
+
+	updateTeamTitles();
+}
+
+function saveRun() {
+	var runData = clone(runDataCurrent);
+
+	// Go through all the general run data inputs and grab their information.
+	for (var i = 0; i < runDataInputs.length; i++) {
+		var input = $(`.${runDataInputs[i].id}`).val();
+
+		if (runDataInputs[i].custom)
+			runData.customData[runDataInputs[i].id] = input;
+
+		// Estimate/setup time needs checking to make sure it's valid and converting to seconds.
+		else if (runDataInputs[i].id === 'estimate' || runDataInputs[i].id === 'setupTime') {
+			if (input.match(/^(\d+:)?(?:\d{1}|\d{2}):\d{2}$/)) {
+				var ms = timeToMS(input);
+				runData[runDataInputs[i].id] = msToTime(ms);
+				runData[`${runDataInputs[i].id}S`] = ms/1000;
 			}
 		}
-		return -1;
+
+		else runData[runDataInputs[i].id] = input;
 	}
-	
-	$('#addExtraTeamButton').click(function() {
-		addTeamFields();
+
+	// For teams/players, we start from blank and redo the arrays.
+	var newTeams = [];
+	$('.team').each((i, teamElem) => {
+		// If this is an existing team and we only need to edit their data.
+		if ($(teamElem).data('id') !== undefined)
+			var teamData = getTeamDataByID(runData, $(teamElem).data('id'));
+		else {
+			var teamData = clone(defaultTeamObject.value);
+			teamData.id = runData.teamLastID+1;
+			runData.teamLastID++;
+		}
+
+		teamData.name = $(`.name`, teamElem).val();
+
+		var newPlayers = [];
+		$('.player', teamElem).each((i, playerElem) => {
+			// If this is an existing player and we only need to edit their data.
+			if ($(playerElem).data('id') !== undefined)
+				var playerData = getPlayerDataByID(teamData, $(playerElem).data('id'));
+			else {
+				var playerData = clone(defaultPlayerObject.value);
+				playerData.id = runData.playerLastID+1;
+				runData.playerLastID++;
+				playerData.teamID = teamData.id;
+			}
+			
+			// Go through player data inputs and grab their information.
+			for (var i = 0; i < playerDataInputs.length; i++) {
+				var input = $(`.${playerDataInputs[i].id}`, playerElem).val();
+
+				if (playerDataInputs[i].social)
+					playerData.social[playerDataInputs[i].id] = input;
+				else
+					playerData[playerDataInputs[i].id] = input;
+			}
+
+			newPlayers.push(playerData);
+		});
+
+		// Don't add the team if there is 0 players.
+		if (newPlayers.length) {
+			teamData.players = newPlayers;
+			newTeams.push(teamData);
+		}
 	});
 
-	function addTeamFields(teamInfo) {
-		var teamInputs = '<div class="teamInput"><button type="button" class="removeTeamButton">- Remove Team</button><input class="teamNameInput" placeholder="Team Name"><div class="allPlayersInput"></div><button type="button" class="addExtraPlayerButton">+ Add Extra Player</button></div>';
-		var $teamInputs = $(teamInputs);
-		$teamInputs.find('button.removeTeamButton').click((event)=>{
-			$(event.target).parent().remove();
-		});
-		$teamInputs.find('button.addExtraPlayerButton').click(()=>{
-			addRunnerFields(null, $teamInputs.find('.allPlayersInput'));
-		});
-		$('#allTeamsInput').append($teamInputs);
-		if (teamInfo) {
-			$teamInputs.find('.teamNameInput').val(teamInfo.name);
-			// if needed add players
-			teamInfo.members.forEach(member => {
-				addRunnerFields(member, $teamInputs.find('.allPlayersInput'));
-			});
-		}
+	runData.teams = newTeams;
 
+	// If adding a new run, correctly set the ID and push.
+	if (runID === undefined) {
+		runData.id = runDataLastID.value+1;
+		runDataLastID.value++;
+		runDataArray.value.push(runData);
 	}
-	
-	function addRunnerFields(runnerInfo, $runnerContainer) {
-		var $playerInputs = '<span class="playerInput">';
-		
-		// HTML for fields.
-		$playerInputs += '<button type="button" class="removeRunnerButton">- Remove Player</button><input class="playerNameInput" placeholder="Player\'s Username"><input class="playerStreamInput" placeholder="Player\'s Stream URL (e.g. https://twitch.tv/trihex)"><input class="playerRegionInput" placeholder="Player\'s Country Code (e.g. SE)"></span>';
-		
-		$playerInputs = $($playerInputs);
-		
-		// If runner info was supplied to this function, fill it in.
-		if (runnerInfo) {
-			$playerInputs.find('.playerNameInput').val(runnerInfo.names.international);
-			$playerInputs.find('.playerStreamInput').val(runnerInfo.twitch.uri);
-			$playerInputs.find('.playerRegionInput').val(runnerInfo.region);
-		}
-		
-		// Action to do when the "Remove Player" button is clicked.
-		$('.removeRunnerButton', $playerInputs).click(event => {
-			$(event.target).parent().remove();
-		});
-		
-		$runnerContainer.append($playerInputs);
-	}
-	
-	// Reset form and inputs back to default.
-	function resetInputs() {
-		$('#gameDetailsInputs input').val('');
-		if (defaultSetupTimeReplicant.value > 0)
-			$('#setupTimeInput').val(msToTime(defaultSetupTimeReplicant.value*1000));
-		$('#allTeamsInput').html('');
-	}
-	
-	// Needs moving to a seperate file; this is copy/pasted in a few places.
-	function msToTime(duration) {
-		var minutes = parseInt((duration/(1000*60))%60),
-			hours = parseInt((duration/(1000*60*60))%24),
-			seconds = parseInt((duration/1000)%60);
-		
-		hours = (hours < 10) ? '0' + hours : hours;
-		minutes = (minutes < 10) ? '0' + minutes : minutes;
-		seconds = (seconds < 10) ? '0' + seconds : seconds;
 
-		return hours + ':' + minutes + ':' + seconds;
+	// Else editing an old one.
+	else {
+		runDataArray.value[getRunIndexInRunDataArray(runData.id)] = runData;
+
+		// If the run being edited is the currently active run, update those details too.
+		if (runDataActiveRun.value && runData.id == runDataActiveRun.value.id)
+			runDataActiveRun.value = runData;
 	}
+}
+
+// Used to add a team element, with populated information if available.
+function addTeam(teamData) {
+	if (!teamData) teamData = clone(defaultTeamObject.value);
+
+	var teamElement = $(`<div class='team'>`);
+	if (teamData.id > -1) teamElement.data('id', teamData.id);
+
+	var teamHeader = $(`<div>`);
+	teamHeader.append(`<button type="button" class="moveTeamUp">↑</button>`);
+	teamHeader.append(`<button type="button" class="moveTeamDown">↓</button>`);
+	teamHeader.append(`<span class="teamTitle">Team X`);
+	teamHeader.append(`<button type="button" class="addPlayer">+ Add Player</button>`)
+	teamHeader.append(`<button type="button" class="removeTeam">- Remove Team</button>`)
+	var teamNameInput = $(`<input title='Team Name' class='name' placeholder='Team Name'>`);
+	teamNameInput.val(teamData.name);
+	teamHeader.append(teamNameInput);
+	teamElement.append(teamHeader);
+	teamElement.append(`<span class="playersContainer">`);
+
+	return teamElement;
+}
+
+// Used to add a player element, with populated information if available.
+function addPlayer(playerData) {
+	if (!playerData) playerData = clone(defaultPlayerObject.value);
+
+	var playerElement = $(`<span class='player'>`);
+	if (playerData.id > -1) playerElement.data('id', playerData.id);
+
+	playerElement.append(`<button type="button" class="movePlayerUp">↑</button>`);
+	playerElement.append(`<button type="button" class="movePlayerDown">↓</button>`);
+	playerElement.append(`<button type="button" class="removePlayer">X</button>`)
+	for (var i = 0; i < playerDataInputs.length; i++) {
+		if (playerDataInputs[i].social) var value = playerData.social[playerDataInputs[i].id];
+		else var value = playerData[playerDataInputs[i].id];
+		var input = $(`<input title='${playerDataInputs[i].placeholder}' class='${playerDataInputs[i].id}' placeholder='${playerDataInputs[i].placeholder}'>`);
+		input.val(value);
+		playerElement.append(input);
+	}
+
+	return playerElement;
+}
+
+// General clean up when we're done.
+function cleanUp() {
+	runDataInputsContainer.empty();
+	teamsContainer.empty();
+	runID = undefined;
+	runDataCurrent = undefined;
+}
+
+// Used to keep the generic team titles always correct when things change around.
+function updateTeamTitles() {
+	$('.teamTitle').each((i, elem) => {
+		$(elem).text(`Team ${i+1}`);
+	});
+}
+
+// Get team object from provided run data.
+function getTeamDataByID(runData, id) {
+	if (!runData) return null;
+	for (var i = 0; i < runData.teams.length; i++) {
+		if (runData.teams[i].id === id) {
+			return clone(runData.teams[i]);
+		}
+	}
+	return null;
+}
+
+// Get player object from provided team data.
+function getPlayerDataByID(teamData, id) {
+	if (!teamData) return null;
+	for (var i = 0; i < teamData.players.length; i++) {
+		if (teamData.players[i].id === id) {
+			return clone(teamData.players[i]);
+		}
+	}
+	return null;
+}
+
+// Needs moving to a seperate file; this is copy/pasted in a few places.
+// Gets index of the run in the array by the unique ID given to the run.
+function getRunIndexInRunDataArray(id) {
+	if (!runDataArray.value) return -1;
+	for (var i = 0; i < runDataArray.value.length; i++) {
+		if (runDataArray.value[i].id === id) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+// Needs moving to a seperate file; this is copy/pasted in a few places.
+function msToTime(duration) {
+	var minutes = parseInt((duration/(1000*60))%60),
+		hours = parseInt((duration/(1000*60*60))%24),
+		seconds = parseInt((duration/1000)%60);
 	
-	// Needs moving to a seperate file; this is copy/pasted in a few places.
-	function timeToMS(duration) {
-		var ts = duration.split(':');
-		if (ts.length === 2) ts.unshift('00'); // Adds 0 hours if they are not specified.
-		return Date.UTC(1970, 0, 1, ts[0], ts[1], ts[2]);
-	}
-});
+	hours = (hours < 10) ? '0' + hours : hours;
+	minutes = (minutes < 10) ? '0' + minutes : minutes;
+	seconds = (seconds < 10) ? '0' + seconds : seconds;
+
+	return hours + ':' + minutes + ':' + seconds;
+}
+
+// Needs moving to a seperate file; this is copy/pasted in a few places.
+function timeToMS(duration) {
+	var ts = duration.split(':');
+	if (ts.length === 2) ts.unshift('00'); // Adds 0 hours if they are not specified.
+	return Date.UTC(1970, 0, 1, ts[0], ts[1], ts[2]);
+}

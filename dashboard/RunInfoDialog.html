@@ -2,53 +2,46 @@
 <html>
 	<head>
 		<script src="../bower_components/jquery/dist/jquery.js"></script>
+		<script src="../node_modules/clone/clone.js"></script>
 		<script src="RunInfoDialog.js"></script>
 		<style>
-			#gameDetailsInputs input {
-				width: 95%;
+			#runDataInputs > input {
+				width: 100%;
 			}
 
-			#gameDetailsInputs button {
-				display: block;
-			}
-
-			.teamInput {
+			.team {
 				margin-top: 20px;
 			}
 
-			.allPlayersInput {
-				margin-left: 5%;
+			.team > div {
+				height: 25px;
+			}
+
+			.team > div > .name, .team > div > .removeTeam {
+				float: right;
+			}
+
+			.team > div > .teamTitle {
+				margin: 0 10px;
+			}
+
+			.player > input {
+				width: calc(87%/3);
+			}
+
+			.addTeam {
+				margin-top: 20px;
+				float: right;
 			}
 		</style>
 	</head>
 	<body>
-		<span id="gameDetailsInputs">
-			<input id="gameInput" placeholder="Game Name">
-			<input id="gameTwitchInput" placeholder="Game Name (Twitch)">
-			<input id="categoryInput" placeholder="Category">
-			<input id="estimateInput" placeholder="Estimate (HH:MM:SS)">
-			<input id="systemInput" placeholder="System/Platform">
-			<input id="regionInput" placeholder="Region">
-			<input id="setupTimeInput" placeholder="Setup Time (HH:MM:SS)">
-			<br><br>
-			<span id="allTeamsInput">
-				<!--<span class="teamInput">
-					<input class="teamNameInput" placeholder="Team Name">
-					<button type="button" class="removeTeamButton">- Remove Team</button>
-					<span class="allPlayersInput">
-						<span class="playerInput">
-							<button type="button" class="removeRunnerButton">- Remove Player</button>
-							<input class="playerNameInput" placeholder="Player's Username">
-							<input class="playerStreamInput" placeholder="Player's Stream URL (e.g. https://twitch.tv/trihex)">
-							<input class="playerRegionInput" placeholder="Player's Country Code (e.g. SE)">
-						</span>
-					</span>
-					<br><br>
-					<button type="button" class="addExtraPlayerButton">+ Add Extra Player</button>
-				</span>
-			</span>-->
-			<br><br>
+		<span>
+			If you need to reset any issues, click on "Cancel" or anywhere outside this dialog, and then add/edit the run again.
+			If a team is empty when you save, it will be dropped.
 		</span>
-		<button type="button" id="addExtraTeamButton">+ Add Extra Team</button>
+		<br><br><span id="runDataInputs"></span>
+		<span id="teamsContainer"></span>
+		<button type="button" class="addTeam">+ Add Team</button>
 	</body>
 </html>

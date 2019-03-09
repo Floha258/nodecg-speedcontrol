@@ -1,6 +1,7 @@
 $(function () {
     var lastItemSize = 0;
-    var blankSlateContainerHtml = $('#run-control-container').html();
+	var blankSlateContainerHtml = $('#run-control-container').html();
+	var customData = nodecg.bundleConfig.schedule.customData || [];
 	
 	// Initialize replicants we will use
     var runDataArrayReplicant = nodecg.Replicant("runDataArray");
@@ -15,7 +16,7 @@ $(function () {
 	
 	$('#editCurrentRunButton').button();
 
-	var horaroRunDataLastIDReplicant = nodecg.Replicant('runDataLastID');
+	var runDataLastID = nodecg.Replicant('runDataLastID');
 	
 	var runDataActiveRunReplicant = nodecg.Replicant('runDataActiveRun');
 	runDataActiveRunReplicant.on('change', (newVal, oldVal) => {
@@ -24,47 +25,57 @@ $(function () {
 	});
 	
 	$('#editCurrentRunButton').click(() => {
-		runDataEditRunReplicant.value = runDataActiveRunReplicant.value.runID;
+		editRun(runDataActiveRunReplicant.value.id);
 	});
 
-    var runDataEditRunReplicant = nodecg.Replicant('runDataEditRun', {defaultValue: -1, persistent: false});
+	function runControl_GetPlayers(runData) {
+		var shouldSayTeams = runData.teams.length > 1;
+		// if any teams have more than 1 player, we should say teams
+		runData.teams.forEach( function(team, index) {
+			shouldSayTeams = team.players.length > 1;
+		});
+		var playerString = '<tr> <td class="rowTitle">'+ (shouldSayTeams ? 'Teams' : 'Players')+ '</td>';
+		$.each(runData.teams, function (index, team) {
+			if (index > 0) {
+				playerString += '<tr><td class="rowTitle"></td>';
+			}
+			if (team.players.length > 1) {
+				if (team.name) var teamName = team.name;
+				else var teamName = `Team ${index+1}`
+				playerString += `<td class="rowContent"> ${teamName}`;
+			}
+			else {
+				playerString += `<td class="rowContent"> ${team.players[0].name}`;
+			}
+			if (team.players.length > 1) {
+				playerString += '<ul>';
 
-    function runControl_GetPlayers(runData) {
-        var shouldSayTeams = runData.teams.length > 1;
-        // if any teams have more than 1 player, we should say teams
-        runData.teams.forEach( function(team, index) {
-          shouldSayTeams = team.members.length > 1;
-        });
-        var playerString = '<tr> <td class="rowTitle">'+ (shouldSayTeams ? 'Teams' : 'Players')+ '</td>';
-        $.each(runData.teams, function (index, team) {
-          if (index > 0) {
-            playerString += '<tr><td class="rowTitle"</td>';
-          }
-          playerString += '<td class="rowContent">' + team.name;
-          if (team.members.length > 1) {
-            playerString += '<ul>';
-
-            $.each(team.members, function (index, member) {
-              playerString += '<li>' + member.names.international + '</li>';
-            });
-            playerString += '</ul>'
-          }
-          playerString += '</td></tr>';
-        });
-        return playerString;
-    }
+				$.each(team.players, function (index, player) {
+					playerString += '<li>' + player.name + '</li>';
+				});
+				playerString += '</ul>'
+			}
+			playerString += '</td></tr>';
+		});
+		return playerString;
+	}
 
     function runControl_GetRunBodyHtml(runData) {
         var players = runControl_GetPlayers(runData);
-        var bodyHtml = '<table class="table-striped">' +
-            players +
-            '<tr><td class="rowTitle">Estimate</td><td class="rowContent">' + runData.estimate + '</td></tr>' +
-            '<tr><td class="rowTitle">Category</td><td class="rowContent">' + runData.category + '</td></tr>' +
-            '<tr><td class="rowTitle">System</td><td class="rowContent">' + runData.system + '</td></tr>' +
-            '<tr><td class="rowTitle">Region</td><td class="rowContent">' + runData.region + '</td></tr>' +
-            '</table>';
-        return bodyHtml;
+        var bodyHtml = '<table class="table-striped">'+players;
+        if (runData.estimate) bodyHtml += '<tr><td class="rowTitle">Estimate</td><td class="rowContent">' + runData.estimate + '</td></tr>';
+        if (runData.category) bodyHtml += '<tr><td class="rowTitle">Category</td><td class="rowContent">' + runData.category + '</td></tr>';
+        if (runData.system) bodyHtml += '<tr><td class="rowTitle">System</td><td class="rowContent">' + runData.system + '</td></tr>';
+        if (runData.region) bodyHtml += '<tr><td class="rowTitle">Region</td><td class="rowContent">' + runData.region + '</td></tr>';
+		if (runData.release) bodyHtml += '<tr><td class="rowTitle">Released</td><td class="rowContent">' + runData.release + '</td></tr>';
+		
+		customData.forEach((customDataElem) => {
+			if (customDataElem.key && customDataElem.name && runData.customData[customDataElem.key])
+				bodyHtml += `<tr><td class="rowTitle">${customDataElem.name}</td><td class="rowContent">${runData.customData[customDataElem.key]}</td></tr>`;
+		});
 
+        bodyHtml += '</table>';
+        return bodyHtml;
     }
 
     function runControl_UpdateList(runData) {
@@ -74,20 +85,20 @@ $(function () {
         var buttonCloneIDs = [];
 
         $.each(runData, function (index, runData) {
-            var buttonRemoveIDString = 'remove' + runData.runID;
-            var buttonChangeIDString = 'change' + runData.runID;
-            var buttonCloneIDString = 'clone' + runData.runID;
+            var buttonRemoveIDString = 'remove' + runData.id;
+            var buttonChangeIDString = 'change' + runData.id;
+            var buttonCloneIDString = 'clone' + runData.id;
             buttonRemoveIDs.push(buttonRemoveIDString);
             buttonChangeIDs.push(buttonChangeIDString);
             buttonCloneIDs.push(buttonCloneIDString);
             teamsString = ( runData.teams.length > 1 ? ", " + runData.teams.length + " Teams" : "");
-            htmlDescriptor += '<div class="group" id="' + runData.runID + '">' +
-                '<h3>' + runData.game + ' (' + runData.category + ')' + " " + runData.players.length + "p" + teamsString +
+            htmlDescriptor += '<div class="group" id="' + runData.id + '">' +
+                '<h3>' + runData.game + ' (' + runData.category + ')' +
                 '</h3>' +
                 '<div>' +
                 runControl_GetRunBodyHtml(runData) +
                 '<button class="removeButton" id="' + buttonRemoveIDString + '"></button>' +
-                '<button class="changeButton" nodecg-dialog="run-info" id="' + buttonChangeIDString + '"></button>' +
+                '<button class="changeButton" id="' + buttonChangeIDString + '"></button>' +
                 '<button class="cloneButton" id="' + buttonCloneIDString + '"></button>' +
                 '</div>' +
                 '</div>';
@@ -114,7 +125,7 @@ $(function () {
 
         $.each(buttonChangeIDs, function (index, buttonID) {
             $('#' + buttonID).click(function () {
-                runDataEditRunReplicant.value = runControl_GetRun(index).runID;
+				editRun(runControl_GetRun(index).id)
             });
 
             $('#' + buttonID).button({
@@ -127,13 +138,13 @@ $(function () {
 		
         $.each(buttonCloneIDs, function (index, buttonID) {
             $('#' + buttonID).click(function () {
-				var clonedRunData = JSON.parse(JSON.stringify(runControl_GetRun(index)));
+				var clonedRunData = clone(runControl_GetRun(index));
 				var newCategory = prompt('Change the category here if needed.', clonedRunData.category);
 				if (newCategory) clonedRunData.category = newCategory; // Set new category if it was entered.
-				clonedRunData.scheduled = undefined;
-				clonedRunData.scheduledS = 0;
-				clonedRunData.runID = horaroRunDataLastIDReplicant.value;
-				horaroRunDataLastIDReplicant.value++;
+				clonedRunData.scheduled = '';
+				clonedRunData.scheduledS = -1;
+				clonedRunData.id = runDataLastID.value+1;
+				runDataLastID.value++;
 				runDataArrayReplicant.value.splice(index+1, 0, clonedRunData);
             });
 
@@ -163,7 +174,7 @@ $(function () {
                     var newRunDataArray = [];
                     $.each(sortedIDs, function (index, valueId) {
                         $.each(runContainer, function (index, valueRunData) {
-                            if (valueRunData.runID == valueId) {
+                            if (valueRunData.id == valueId) {
                                 newRunDataArray.push(valueRunData);
                                 return false;
                             }
@@ -186,5 +197,10 @@ $(function () {
     function runControl_GetRun(ID) {
         var runContainer = runDataArrayReplicant.value;
         return runContainer[ID];
-    }
+	}
+	
+	function editRun(id) {
+		nodecg.getDialog('run-info').querySelector('iframe').contentWindow.loadRun(id);
+		nodecg.getDialog('run-info').open();
+	}
 });

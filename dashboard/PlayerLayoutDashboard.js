@@ -27,7 +27,7 @@ $(function() {
 				var newTeamArray = [];
 				$.each(sortedIDs, function (index, valueId) {
 					$.each(oldTeamArray, function (index, team) {
-						if (team.name == valueId) {
+						if (team.id == valueId) {
 							newTeamArray.push(team);
 							return false;
 						}
@@ -42,12 +42,15 @@ $(function() {
 	
 	function playerLayout_CreateTeamListHtmlElements(teamArray) {
 		var runnerHtml = '';
-		$.each(teamArray, function (index, value) {
-			var teamMembers = [];
-			if (value.members.length > 1) {
-				value.members.forEach(function(member) {teamMembers.push(member.names.international);});
-			}
-			runnerHtml += '<li class="ui-state-default" id="' + value.name + '" title="'+teamMembers.join(', ')+'">' + value.name + '</li>';
+		$.each(teamArray, function (index, team) {
+			if (team.name) var teamName = team.name;
+			else if (team.players.length > 1) var teamName = `Team ${index+1}`
+			else var teamName = team.players[0].name;
+
+			var teamPlayers = [];
+			if (team.players.length > 1 || team.name) team.players.forEach(player => teamPlayers.push(player.name));
+
+			runnerHtml += '<li class="ui-state-default" id="' + team.id + '" title="'+teamPlayers.join(', ')+'">' + teamName + '</li>';
 		});
 		return runnerHtml;
 	}
@@ -63,17 +66,17 @@ $(function() {
 				// IE doesn't register the blur when sorting
 				// so trigger focusout handlers to remove .ui-state-focus
 				var sortedIDs = $('#playerLayoutSortable').sortable("toArray");
-				var oldPlayerArray = runDataActiveRunReplicant.value.teams[0].members;
+				var oldPlayerArray = runDataActiveRunReplicant.value.teams[0].players;
 				var newPlayerArray = [];
 				$.each(sortedIDs, function (index, valueId) {
 					$.each(oldPlayerArray, function (index, player) {
-						if (player.names.international == valueId) {
+						if (player.name == valueId) {
 							newPlayerArray.push(player);
 							return false;
 						}
 					});
 				});
-				runDataActiveRunReplicant.value.teams[0].members = newPlayerArray;
+				runDataActiveRunReplicant.value.teams[0].players = newPlayerArray;
 			}
 		});
 		
@@ -82,8 +85,8 @@ $(function() {
 	
 	function playerLayout_CreatePlayerListHtmlElements(playerArray) {
 		var runnerHtml = '';
-		$.each(playerArray.members, function (index, value) {
-			runnerHtml += '<li class="ui-state-default" id="' + value.names.international + '">' + value.names.international + '</li>';
+		$.each(playerArray.players, function (index, value) {
+			runnerHtml += '<li class="ui-state-default" id="' + value.name + '">' + value.name + '</li>';
 		});
 		return runnerHtml;
 	}

@@ -5,6 +5,7 @@ $(function () {
     var syncGamePlayedToTwitch = false;
 	var changingEnabled = true;
     var blankSlateRunContainerHtml = $('#run-player-container').html();
+	var customData = nodecg.bundleConfig.schedule.customData || [];
 	
     // Initialize replicants we will use
 	
@@ -30,14 +31,14 @@ $(function () {
     var runDataActiveRunReplicant = nodecg.Replicant("runDataActiveRun");
     runDataActiveRunReplicant.on("change", function (newValue, oldValue) {
         if (newValue != "" && typeof newValue !== 'undefined') {
-            setActiveRun(newValue.runID);
+            setActiveRun(newValue.id);
         }
         else {
 			runPlayer_activeRunID = -1;
         }
-    });
-
-    var streamsReplicant = nodecg.Replicant('twitch-streams');
+	});
+	
+	var streamsReplicant = nodecg.Replicant('twitch-streams');
 	
 	$('#resetMarathonButton').button();
 	$('#resetMarathonButton').click(() => {
@@ -49,9 +50,7 @@ $(function () {
 		setActiveRun(runPlayer_activeRunID);
 	});
 
-    var runDataActiveRunRunnerListReplicant = nodecg.Replicant("runDataActiveRunRunnerList");
-
-    var stopWatchReplicant = nodecg.Replicant('stopwatch');
+    var stopWatchReplicant = nodecg.Replicant('timer');
     stopWatchReplicant.on('change', function (newVal, oldVal) {
         if (!newVal) return;
 				var oldstate = "stopped";
@@ -96,19 +95,26 @@ $(function () {
 			var shouldSayTeams = runData.teams.length > 1;
 			// if any teams have more than 1 player, we should say teams
 			runData.teams.forEach( function(team, index) {
-				shouldSayTeams = team.members.length > 1;
+				shouldSayTeams = team.players.length > 1;
 			});
 			var playerString = '<tr> <td class="rowTitle">'+ (shouldSayTeams ? 'Teams' : 'Players')+ '</td>';
 			$.each(runData.teams, function (index, team) {
 				if (index > 0) {
-					playerString += '<tr><td class="rowTitle"</td>';
+					playerString += '<tr><td class="rowTitle"></td>';
 				}
-				playerString += '<td class="rowContent">' + team.name;
-				if (team.members.length > 1) {
+				if (team.players.length > 1) {
+					if (team.name) var teamName = team.name;
+					else var teamName = `Team ${index+1}`
+					playerString += `<td class="rowContent"> ${teamName}`;
+				}
+				else {
+					playerString += `<td class="rowContent"> ${team.players[0].name}`;
+				}
+				if (team.players.length > 1) {
 					playerString += '<ul>';
 
-					$.each(team.members, function (index, member) {
-						playerString += '<li>' + member.names.international + '</li>';
+					$.each(team.players, function (index, player) {
+						playerString += '<li>' + player.name + '</li>';
 					});
 					playerString += '</ul>'
 				}
@@ -119,23 +125,27 @@ $(function () {
 	
     function runPlayer_getRunBodyHtml(runData) {
         var players = runPlayer_getPlayers(runData);
-        var bodyHtml = '<table class="table-striped">' +
-            players +
-            '<tr><td class="rowTitle">Estimate</td><td class="rowContent">' + runData.estimate + '</td></tr>' +
-            '<tr><td class="rowTitle">Category</td><td class="rowContent">' + runData.category + '</td></tr>' +
-            '<tr><td class="rowTitle">System</td><td class="rowContent">' + runData.system + '</td></tr>' +
-            '<tr><td class="rowTitle">Region</td><td class="rowContent">' + runData.region + '</td></tr>' +
-            '</table>' +
-            '<button class="playRunButton" id="playRun' + runData.runID + '">play</button>';
-        return bodyHtml;
+        var bodyHtml = '<table class="table-striped">'+players;
+        if (runData.estimate) bodyHtml += '<tr><td class="rowTitle">Estimate</td><td class="rowContent">' + runData.estimate + '</td></tr>';
+        if (runData.category) bodyHtml += '<tr><td class="rowTitle">Category</td><td class="rowContent">' + runData.category + '</td></tr>';
+        if (runData.system) bodyHtml += '<tr><td class="rowTitle">System</td><td class="rowContent">' + runData.system + '</td></tr>';
+        if (runData.region) bodyHtml += '<tr><td class="rowTitle">Region</td><td class="rowContent">' + runData.region + '</td></tr>';
+		if (runData.release) bodyHtml += '<tr><td class="rowTitle">Released</td><td class="rowContent">' + runData.release + '</td></tr>';
+		
+		customData.forEach((customDataElem) => {
+			if (customDataElem.key && customDataElem.name && runData.customData[customDataElem.key])
+				bodyHtml += `<tr><td class="rowTitle">${customDataElem.name}</td><td class="rowContent">${runData.customData[customDataElem.key]}</td></tr>`;
+		});
 
+        bodyHtml += '</table><button class="playRunButton" id="playRun' + runData.id + '">play</button>';
+        return bodyHtml;
     }
 
     function runPlayer_updateList(runData) {
         var htmlDescriptor = '';
         $.each(runData, function (index, runData) {
-            htmlDescriptor += '<div class="playerGroup" id="' + runData.runID + '">' +
-                '<h3>' + runData.game + ' (' + runData.category + ')' + " " + runData.players.length + "p" +
+            htmlDescriptor += '<div class="playerGroup" id="' + runData.id + '">' +
+                '<h3>' + runData.game + ' (' + runData.category + ')' +
                 '</h3>' +
                 '<div>' +
                 runPlayer_getRunBodyHtml(runData) +
@@ -206,8 +216,8 @@ $(function () {
         $('.playerGroup').find('*').removeClass('ui-state-playing');
         $('.playerGroup').find('*').removeClass('ui-state-playing-next');
         $('#' + runID + ".playerGroup").find('h3').addClass('ui-state-playing');
-        $('#' + theNextGame.runID + ".playerGroup").find('h3').addClass('ui-state-playing-next');
-        $("#runPlayerWindow").scrollTo($('#' + thePreviousGame.runID + ".playerGroup"), 500, {queue: false});
+        $('#' + theNextGame.id + ".playerGroup").find('h3').addClass('ui-state-playing-next');
+        $("#runPlayerWindow").scrollTo($('#' + thePreviousGame.id + ".playerGroup"), 500, {queue: false});
 
         $(".runPlayerNext").button({
             text: true,
@@ -233,26 +243,25 @@ $(function () {
         $('.playerGroup').find('*').removeClass('ui-state-playing');
         $('.playerGroup').find('*').removeClass('ui-state-playing-next');
         $('#' + runID + ".playerGroup").find('h3').addClass('ui-state-playing');
-        $('#' + theNextGame.runID + ".playerGroup").find('h3').addClass('ui-state-playing-next');
-        $("#runPlayerWindow").scrollTo($('#' + thePreviousGame.runID + ".playerGroup"), 500, {queue: false});
+        $('#' + theNextGame.id + ".playerGroup").find('h3').addClass('ui-state-playing-next');
+        $("#runPlayerWindow").scrollTo($('#' + thePreviousGame.id + ".playerGroup"), 500, {queue: false});
 		runDataActiveRunReplicant.value = runPlayer_activeRunObject;
 		
 		// grab all runners
 		var index = 0;
-		for (index in runPlayer_activeRunObject.players) {
-			const curPlayerTwitch = runPlayer_activeRunObject.players[index].twitch;
-			if (!curPlayerTwitch || !curPlayerTwitch.uri) {
-				nodecg.log.error('Twitch name for player '+index+' missing!');
-				streamsReplicant.value[index].paused = true;
-				streamsReplicant.value[index].hidden = true;
-				continue;
-			}
-			const match = curPlayerTwitch.uri.match(/https?:\/\/www.twitch.tv\/(.*)/);
-			if (match && match[1]) {
-				streamsReplicant.value[index].channel = match[1];
-				streamsReplicant.value[index].hidden = false;
-			}
-		}
+		runPlayer_activeRunObject.teams.forEach(team => {
+			team.players.forEach(player => {
+				if (!player.social || !player.social.twitch) {
+					nodecg.log.error('Twitch name for player '+index+' missing!');
+					streamsReplicant.value[index].paused = true;
+					streamsReplicant.value[index].hidden = true;
+				} else {
+					streamsReplicant.value[index].channel = player.social.twitch;
+					streamsReplicant.value[index].hidden = false;
+				}
+				index++;
+			});
+		});
 		index++;
 		// hide/mute/stop all other streams
 		while (index < 4) {
@@ -303,14 +312,13 @@ $(function () {
  			}
 
 	 		// Gets Twitch channel names from the runData and puts them in an array to send to the FFZ WS script.
- 			var twitchNames = [];
- 			for (var i = 0; i < runData.players.length; i++) {
-				var twitchData = runData.players[i].twitch;
-				var twitchName = (twitchData && twitchData.uri) ? twitchData.uri.replace(/https?:\/\/.*?\//, '') : undefined;
-				if (twitchName && !twitchName.match(/^http/)) {
-					twitchNames.push(twitchName);
-				}
- 			}
+			var twitchNames = [];
+			runData.teams.forEach((team) => {
+				team.players.forEach((player) => {
+					if (player.social.twitch)
+						twitchNames.push(player.social.twitch);
+				});
+			});
 			if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twitch.streamTitle) {
 				var newTitle = nodecg.bundleConfig.twitch.streamTitle
 													.replace("{{game}}",runData.game)
@@ -347,7 +355,7 @@ $(function () {
 				},
 				success: function(result) {
 					// We look for an exact match (case insensitive) here so games like super metroid fall back to twitch search instead
-					if ((result.data.length > 0) && (runData.game.toLowerCase() == result.data[0].names.international.toLowerCase())) {
+					if ((result.data.length > 0) && (runData.game.toLowerCase() == result.data[0].name.toLowerCase())) {
 						twitchGameName = result.data[0].names.twitch;
 					} else {
 						console.log ("No exact game match on speedrun.com for "+ runData.game);
@@ -397,14 +405,14 @@ $(function () {
 		},2000);
 	  }
 	  
-	// Goes through each team and members and makes a string to show the names correctly together.
+	// Goes through each team and players and makes a string to show the names correctly together.
 	function formPlayerNamesString(runData) {
 		var namesArray = [];
 		var namesList = 'No Runner(s)';
 		runData.teams.forEach(team => {
-			var teamMemberArray = [];
-			team.members.forEach(member => {teamMemberArray.push(member.names.international);});
-			namesArray.push(teamMemberArray.join(', '));
+			var teamPlayerArray = [];
+			team.players.forEach(player => {teamPlayerArray.push(player.name);});
+			namesArray.push(teamPlayerArray.join(', '));
 		});
 		namesList = namesArray.join(' vs. ');
 		return namesList;
@@ -412,12 +420,12 @@ $(function () {
 
     function runPlayer_playNextRun() {
         var activeGame = runDataActiveRunReplicant.value;
-        var nextGameIndex; try {nextGameIndex = runPlayer_getRunIndexInArray(activeGame.runID);} catch(e) {nextGameIndex = -1;}
+        var nextGameIndex; try {nextGameIndex = runPlayer_getRunIndexInArray(activeGame.id);} catch(e) {nextGameIndex = -1;}
         nextGameIndex++;
         if(nextGameIndex >= runDataArrayReplicantPlayer.value.length) {
             nextGameIndex = 0;
         }
-        runPlayer_playRunIdOnly(runDataArrayReplicantPlayer.value[nextGameIndex].runID);
+        runPlayer_playRunIdOnly(runDataArrayReplicantPlayer.value[nextGameIndex].id);
     }
 
     function runPlayer_getRunObjectByIndex(runIndex) {
@@ -441,20 +449,12 @@ $(function () {
         var runs = runDataArrayReplicantPlayer.value;
         var foundIndex = -1;
         $.each(runs, function(index, run) {
-            if(run.runID == runID) {
+            if(run.id == runID) {
                 foundIndex = index;
             }
         });
         return Number(foundIndex);
     }
-	
-    $(".runPlayerNext").click(function () {
-        if(!changingEnabled || runDataArrayReplicantPlayer.value == "") {
-            return;
-        }
-        nodecg.sendMessage("resetTime");
-        runPlayer_playNextRun()
-    });
 	
 	function defaultNextRunButton() {
 		$(".runPlayerNext").button({

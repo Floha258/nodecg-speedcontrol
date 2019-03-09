@@ -2,21 +2,28 @@
 var nodecg = require('./utils/nodecg-api-context').get();
 var needle = require('needle');
 var async = require('async');
+var clone = require('clone');
+var md = require('markdown-it')();
+var removeMd = require('remove-markdown');
 
 var runDataArray = [];
-var runNumberIterator = 1;
+var runNumberIterator = -1;
 var scheduleData;
 
 var defaultSetupTimeReplicant = nodecg.Replicant('defaultSetupTime', {defaultValue: 0});
-var horaroRunDataArrayReplicant = nodecg.Replicant('runDataArray');
+var horaroRunDataArrayReplicant = nodecg.Replicant('runDataArray', {defaultValue: []});
 var scheduleImporting = nodecg.Replicant('horaroScheduleImporting', {defaultValue:{importing:false,item:0,total:0}, persistent:false});
 
 // Temp cache for the user data from SR.com that is kept until the server is restarted.
 var userDataCache = nodecg.Replicant('horaroImportUserDataCache', {defaultValue: {}, persistent: false});
 
-var customData = nodecg.bundleConfig.schedule.customData || [];
+var disableSRComLookup = nodecg.bundleConfig.schedule.disableSpeedrunComLookup || false;
 
 nodecg.listenFor('loadScheduleData', (url, callback) => {
+	// If the URL has a secret key in it, extract it and form the JSON URL correctly.
+	if (url.match((/\?key=/))) url = `${url.match(/(.*?)(?=(\?key=))/)[0]}.json?key=${url.match(/(?<=(\?key=))(.*?)$/)[0]}`;
+	else url = `${url}.json`;
+
 	setScheduleData(url, () => callback(null, scheduleData));
 });
 
@@ -25,7 +32,7 @@ nodecg.listenFor('importScheduleData', (columns, callback) => {
 	scheduleImporting.value.importing = true;
 	scheduleImporting.value.item = 0;
 	runDataArray = [];
-	runNumberIterator = 1;
+	runNumberIterator = -1;
 
 	var runItems = scheduleData.schedule.items;
 	scheduleImporting.value.total = runItems.length;
@@ -49,20 +56,15 @@ nodecg.listenFor('importScheduleData', (columns, callback) => {
 			return callback();
 		}
 		
-		var runData = createRunData();
+		var runData = clone(nodecg.readReplicant('defaultRunDataObject'));
 		
 		// Game Name
-		if (columns.game >= 0 && run.data[columns.game]) {
-			// Checking to see if the game name is a link, if not use the whole field.
-			if (run.data[columns.game].match(/(?:__|[*#])|\[(.*?)\]\(.*?\)/))
-				runData.game = run.data[columns.game].match(/(?:__|[*#])|\[(.*?)\]\(.*?\)/)[1];
-			else
-				runData.game = run.data[columns.game];
-		}
+		if (columns.game >= 0 && run.data[columns.game])
+			runData.game = parseMarkdown(run.data[columns.game]).str;
 		
 		// Game Twitch Name
 		if (columns.gameTwitch >= 0 && run.data[columns.gameTwitch])
-			runData.gameTwitch = run.data[columns.gameTwitch];
+			runData.gameTwitch = parseMarkdown(run.data[columns.gameTwitch]).str;
 		
 		// Scheduled date/time.
 		runData.scheduledS = run.scheduled_t;
@@ -86,85 +88,89 @@ nodecg.listenFor('importScheduleData', (columns, callback) => {
 		}
 		
 		// Category
-		if(columns.category >= 0 && run.data[columns.category])
-			runData.category = run.data[columns.category];
+		if (columns.category >= 0 && run.data[columns.category])
+			runData.category = parseMarkdown(run.data[columns.category]).str;
 		
 		// System
-		if(columns.system >= 0 && run.data[columns.system])
-			runData.system = run.data[columns.system];
+		if (columns.system >= 0 && run.data[columns.system])
+			runData.system = parseMarkdown(run.data[columns.system]).str;
 		
 		// Region
 		if (columns.region >= 0 && run.data[columns.region])
-			runData.region = run.data[columns.region];
+			runData.region = parseMarkdown(run.data[columns.region]).str;
+
+		// Release
+		if (columns.release >= 0 && run.data[columns.release])
+			runData.release = parseMarkdown(run.data[columns.release]).str;
 		
 		// Custom Data
 		// These are stored within the own object in the runData: "customData".
 		Object.keys(columns.custom).forEach((col) => {
-			runData.customData[col] = null; // Make sure the key is set for all runs.
+			runData.customData[col] = ''; // Make sure the key is set for all runs.
 			if (columns.custom[col] >= 0 && run.data[columns.custom[col]])
-				runData.customData[col] = run.data[columns.custom[col]];
+				runData.customData[col] = parseMarkdown(run.data[columns.custom[col]]).str;
 		});
 		
 		// Teams/Players (there's a lot of stuff here!)
 		if (columns.player >= 0 && run.data[columns.player]) {
-			var playerLinksList = run.data[columns.player];
-			
-			// Splitting by ' vs. ' or ' vs ' in case this is a race.
-			var vsList = playerLinksList.split(/\s+vs\.?\s+/);
-			async.eachSeries(vsList, function(rawTeam, callback) {
-				// Getting/setting the team name.
-				var customTeamName = false;
-				var cap = rawTeam.match(/(Team\s*)?(\S+):\s+\[/);
-				if (cap !== null && cap.length > 0) {
-					customTeamName = true;
-					var teamName = cap[2];
-				}
-				else
-					var teamName = 'Team '+(runData.teams.length+1);
+			var splitOption = columns.playerSplit; // 0: vs/vs. - 1: Comma (,) no teams
+			var playerList = run.data[columns.player];
+			var teamsRaw = [];
+
+			// vs/vs.
+			if (splitOption === 0) {
+				playerList.split(/\s+vs\.?\s+/).forEach(team => {
+					teamsRaw.push({
+						name: (team.match(/^(.+)(?=:\s)/)) ? team.match(/^(.+)(?=:\s)/)[0] : null, // Either will be a string or null.
+						players: team.replace(/^(.+)(:\s)/, '').split(/\s*,\s*/)
+					})
+				});
+			}
+
+			// Comma (,)
+			else if (splitOption === 1) {
+				playerList.split(/\s*,\s*/).forEach(team => {
+					teamsRaw.push({
+						name: (team.match(/^(.+)(?=:\s)/)) ? team.match(/^(.+)(?=:\s)/)[0] : null, // Either will be a string or null.
+						players: [team.replace(/^(.+)(:\s)/, '')] // Making the single string into an array.
+					})
+				});
+			}
+
+			async.eachSeries(teamsRaw, function(rawTeam, callback) {
+				// Getting the players on this team.
+				var players = rawTeam.players;
+				var team = clone(nodecg.readReplicant('defaultTeamObject'));
+				runData.teamLastID++;
+				team.id = runData.teamLastID;
+				if (rawTeam.name) team.name = parseMarkdown(rawTeam.name).str;
 				
-				// Getting the members of this team.
-				var members = rawTeam.split(/\s*,\s*/);
-				var team = {
-					name: teamName,
-					custom: customTeamName,
-					members: new Array()
-				};
-				
-				// Going through the list of members.
-				async.eachSeries(members, function(member, callback) {
-					// Checking to see if the user is a link, if not use the whole field.
-					if (member.match(/(?:__|[*#])|\[(.*?)\]\(.*?\)/) && member.match(/\((.*?)\)/)) {
-						var URI = member.match(/\((.*?)\)/)[1];
-						var playerName = member.match(/\[(.*?)\]/)[1];
-					}
-					else
-						var playerName = member;
+				// Going through the list of players.
+				async.eachSeries(players, function(rawPlayer, callback) {
+					var playerName = parseMarkdown(rawPlayer).str;
+					var URI = parseMarkdown(rawPlayer).url;
 					
 					getDataFromSpeedrunCom(playerName, URI, function(regionCode, twitchURI) {
-						// Creating the member object.
-						var memberObj = {
-							names: {
-								international: playerName
-							},
-							twitch: {
-								uri: twitchURI || URI
-							},
-							team: team.name,
-							region: regionCode
-						};
+						// Creating the player object.
+						var player = clone(nodecg.readReplicant('defaultPlayerObject'));
+						player.name = playerName;
+						player.teamID = team.id;
+						player.country = regionCode;
+						runData.playerLastID++;
+						player.id = runData.playerLastID;
+
+						// Get/set Twitch username from URL.
+						var url = twitchURI || URI;
+						if (url && url.includes('twitch.tv')) {
+							url = url.split('/')[url.split('/').length-1];
+							player.social.twitch = url;
+						}
 						
 						// Push this object to the relevant arrays where it is stored.
-						team.members.push(memberObj);
-						runData.players.push(memberObj);
+						team.players.push(player);
 						callback();
 					});
 				}, function(err) {
-					// If there's only 1 member in the team, set the team name as their name.
-					if (members.length === 1) {
-						team.name = team.members[0].names.international;
-						team.members[0].team = team.name;
-					}
-					
 					runData.teams.push(team);
 					callback();
 				});
@@ -189,32 +195,10 @@ nodecg.listenFor('importScheduleData', (columns, callback) => {
 });
 
 function setScheduleData(url, callback) {
-	needle.get(url+'.json', (err, resp) => {
+	needle.get(url, (err, resp) => {
 		scheduleData = resp.body;
 		callback();
 	});
-}
-
-// Returns an empty run object.
-function createRunData() {
-	var runData = {};
-	runData.players = [];
-	runData.game = undefined;
-	runData.gameTwitch = undefined;
-	runData.estimate = undefined;
-	runData.estimateS = 0;
-	runData.setupTime = undefined;
-	runData.setupTimeS = 0;
-	runData.scheduled = undefined;
-	runData.scheduledS = 0;
-	runData.system = undefined;
-	runData.region = undefined;
-	runData.category = undefined;
-	runData.screens = [];
-	runData.cameras = [];
-	runData.teams = [];
-	runData.customData = {};
-	return runData;
 }
 
 function checkGameAgainstIgnoreList(game) {
@@ -232,6 +216,11 @@ function checkGameAgainstIgnoreList(game) {
 
 // Tries to find the specified user on speedrun.com and get their country/region and Twitch if needed.
 function getDataFromSpeedrunCom(username, twitch, callback) {
+	// If speedrun.com lookup is disabled, just return undefined here.
+	if (disableSRComLookup) {
+		return callback(undefined, undefined);
+	}
+
 	if (userDataCache.value[username]) {
 		extractInfoFromSRComUserData(userDataCache.value[username], (SRComRegion, SRComTwitch) => {
 			callback(SRComRegion, SRComTwitch);
@@ -338,10 +327,28 @@ function getTwitchFromSRComUserData(data) {
 		return false;
 }
 
+// Used to parse Markdown from schedules.
+// Currently returns URL of first link (if found) and a string with all formatting removed.
+function parseMarkdown(str) {
+	var results = {url: undefined, str: undefined};
+	if (!str) return results; // If no string is provided, just end early.
+	var res; try {res = md.parseInline(str);} catch(err) {} // Some stuff can break this, so catching it if needed.
+	if (res && res[0] && res[0].children && res[0].children.length) {
+		for (const child of res[0].children) {
+			if (child.type === 'link_open' && child.attrs.length && child.attrs[0] && child.attrs[0].length && child.attrs[0][0] === 'href') {
+				results.url = child.attrs[0][1];
+				break;
+			}
+		}
+	}
+	results.str = removeMd(str);
+	return results;
+}
+
 // Called as a process when pushing the "add run" button.
 function horaro_AddRun(runData) {
-	runData.runID = runNumberIterator;
 	runNumberIterator++;
+	runData.id = runNumberIterator;
 	runDataArray.push(runData);
 }
 
@@ -351,16 +358,10 @@ function horaro_finalizeRunList() {
 }
 
 // All the runs have a unique ID attached to them.
+var runDataLastID = nodecg.Replicant('runDataLastID');
 function horaro_SetLastID() {
-	horaroRunDataLastIDReplicant.value = runNumberIterator;
+	runDataLastID.value = runNumberIterator;
 }
-
-var horaroRunDataLastIDReplicant = nodecg.Replicant('runDataLastID');
-horaroRunDataLastIDReplicant.on('change', function(newValue, oldValue) {
-	if (typeof newValue === 'undefined') {
-		horaroRunDataLastIDReplicant.value = 1;
-	}
-});
 
 function secondsToTime(duration) {
 	var seconds = parseInt(duration % 60);

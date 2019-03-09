@@ -2,7 +2,6 @@
 	"$schema": "http://json-schema.org/draft-04/schema#",
 	"type": "object",
 	"properties": {
-		"live": {"type": "boolean", "default": false},
 		"twitch": {
 			"type": "object",
 			"properties": {
@@ -12,15 +11,7 @@
 				"redirectURI": {"type": "string", "default": "http://localhost:9090/nodecg-speedcontrol/twitchauth"},
 				"ffzIntegration": {"type": "boolean", "default": false},
 				"streamTitle": {"type": "string", "default": "Game: {{game}} - Category: {{category}} - Players: {{players}}"},
-				"streamDefaultGame": {"type": "string", "default": "Games + Demos"},
-				"highlighting": {
-					"type": ["object", "null"],
-					"properties": {
-						"enable": {"type": "boolean", "default": false},
-						"gqlOAuth":  {"type": "string", "default": "SITE_OAUTH_KEY"},
-						"title": {"type": "string", "default": "Game: {{game}} - Category: {{category}} - Players: {{players}}"}
-					}
-				}
+				"streamDefaultGame": {"type": "string", "default": "Games + Demos"}
 			}
 		},
 		"schedule": {
@@ -33,6 +24,7 @@
 					"items": {"type": "string"},
 					"minItems": 1
 				},
+				"disableSpeedrunComLookup": {"type": "boolean", "default": false},
 				"customData": {
 					"type": ["array", "null"],
 					"uniqueItems": true,
@@ -43,41 +35,6 @@
 							"key": {"type": "string"}
 						}
 					},
-					"minItems": 1
-				}
-			}
-		},
-		"tiltify": {
-			"type": "object",
-			"properties": {
-				"enable": {"type": "boolean", "default": false},
-				"token": {"type": "string", "default": "API_ACCESS_TOKEN"},
-				"campaign": {"type": "string", "default": "CAMPAIGN_ID"}
-			}
-		},
-		"speedrunComMarathon": {
-			"type": "object",
-			"properties": {
-				"enable": {"type": "boolean", "default": false},
-				"slug": {"type": "string", "default": "SRC_SLUG"}
-			}
-		},
-		"gaming4Good": {
-			"type": ["object", "null"],
-			"properties": {
-				"enable": {"type": "boolean", "default": false},
-				"twitchChannelID": {"type": "string", "default": "TWITCH_ID"}
-			}
-		},
-		"api": {
-			"type": ["object", "null"],
-			"properties": {
-				"enable": {"type": "boolean"},
-				"sharedKey": {"type": "string"},
-				"hooks": {
-					"type": "array",
-					"uniqueItems": true,
-					"items": {"type": "string"},
 					"minItems": 1
 				}
 			}
