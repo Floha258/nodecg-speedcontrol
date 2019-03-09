@@ -169,6 +169,7 @@ async function joinRoom(
 				game_name: $('input[name="game_name"]').val(),
 				player_name: playerName,
 				passphrase: passphrase,
+				is_spectator: "on",
 				csrfmiddlewaretoken: csrfTokenInput.val()
 			},
 			headers: {
