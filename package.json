@@ -14,8 +14,9 @@
   ],
   "dependencies": {
     "async": "^2.4.1",
-    "clone": "^2.1.1",
+    "bower-npm-resolver": "^0.10.0",
     "cheerio": "^1.0.0-rc.1",
+    "clone": "^2.1.1",
     "deep-equal": "^1.0.1",
     "discord.js": "^11.4.2",
     "graphql-request": "^1.6.0",
@@ -25,6 +26,7 @@
     "markdown-it": "^8.4.2",
     "moment": "^2.18.1",
     "needle": "^2.2.4",
+    "nodecg-utility-obs": "^5.0.6",
     "pusher-js": "^4.3.1",
     "remove-markdown": "^0.3.0",
     "request": "^2.73.0",

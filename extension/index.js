@@ -25,6 +25,7 @@ module.exports = function(nodecg) {
 	require('./ffzws');
 	require('./bingosync');
 	require('./gdq-donationtracker');
+        require('./obs')(nodecg);
 
 	if (nodecg.bundleConfig.discord) {
 		if (!nodecg.bundleConfig.discord.test) {
