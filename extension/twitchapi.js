@@ -19,6 +19,7 @@ var accessToken = nodecg.Replicant('twitchAccessToken');
 var refreshToken = nodecg.Replicant('twitchRefreshToken');
 var twitchChannelInfo = nodecg.Replicant('twitchChannelInfo');
 var twitchChannelID = nodecg.Replicant('twitchChannelID');
+var twitchChannelNameRep = nodecg.Replicant('twitchChannelName');
 
 // logged in user might just have edit rights for this channel, not be this channel
 const twitchChannelName = nodecg.bundleConfig.twitch.channel;
@@ -29,6 +30,8 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 		nodecg.log.error('No twitch channel given!');
 		return;
 	}
+
+	twitchChannelNameRep.value = twitchChannelName;
 	
 	requestOptions.headers['Client-ID'] = nodecg.bundleConfig.twitch.clientID;
 	if (accessToken.value) requestOptions.headers['Authorization'] = 'OAuth '+accessToken.value;
