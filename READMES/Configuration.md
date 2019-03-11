@@ -22,6 +22,7 @@ Below is an example configuration file contents with everything that is availabl
 		"clientSecret": "CLIENT_SECRET",
 		"redirectURI": "http://localhost:9090/nodecg-speedcontrol/twitchauth",
 		"ffzIntegration": false,
+		"chatBot": false,
 		"streamTitle": "Game: {{game}} - Category: {{category}} - Players: {{players}}",
 		"streamDefaultGame": "Games + Demos"
 	},
@@ -35,7 +36,21 @@ Below is an example configuration file contents with everything that is availabl
 				"key": "gameShort"
 			}
 		]
+	},
+	"discord":{
+		"token": "YOUR_DISCORD_BOT_TOKEN",
+		"serverID": "ID of your discord server",
+		"commandChannelID": "text channel where the bot is operated from on the discord server",
+		"voiceChannelID": "voice channel the bot joins to display voice activity",
+		"test":true
+					
+	},
+	"donationtracker": {
+		"url":"https://devdonations.bingothon.com",
+		"enable":false,
+		"eventSlug":"bingothon18"
 	}
+}
 }
 ```
 
