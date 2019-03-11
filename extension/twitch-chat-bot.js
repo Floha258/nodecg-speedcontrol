@@ -9,9 +9,6 @@ var chatCommandsRep = nodecg.Replicant('chatCommands', {defaultValue: {}});
 
 // Setting up replicants.
 var accessToken = nodecg.Replicant('twitchAccessToken');
-var refreshToken = nodecg.Replicant('twitchRefreshToken');
-var twitchChannelInfo = nodecg.Replicant('twitchChannelInfo');
-var twitchChannelID = nodecg.Replicant('twitchChannelID');
 var twitchChannelNameRep = nodecg.Replicant('twitchChannelName');
 
 if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twitch.enable && nodecg.bundleConfig.twitch.chatBot) {
