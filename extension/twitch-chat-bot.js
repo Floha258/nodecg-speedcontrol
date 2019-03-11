@@ -10,6 +10,7 @@ var chatCommandsRep = nodecg.Replicant('chatCommands', {defaultValue: {}});
 // Setting up replicants.
 var accessToken = nodecg.Replicant('twitchAccessToken');
 var twitchChannelNameRep = nodecg.Replicant('twitchChannelName');
+var runDataActiveRunRep = nodecg.Replicant('runDataActiveRun');
 
 if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twitch.enable && nodecg.bundleConfig.twitch.chatBot) {
     nodecg.log.info("Twitch chat bot is enabled.");
@@ -90,8 +91,17 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
                 }
             }
         }
-        if (chatCommandsRep.value.hasOwnProperty(parts[0].slice(1))) {
-            var userCommand = chatCommandsRep.value[parts[0].slice(1)];
+        var userCommandName = parts[0].slice(1);
+        if (userCommandName == "runner" || userCommandName == "r") {
+            // Grab current runners and format them & their twitch
+            var runersStr = runDataActiveRunRep.value.teams.flatMap(t => t.players).map(p => `${p.name} ( twitch.tv/${p.social.twitch} )`).join(', ');
+            if (runersStr) {
+                client.say(channel, 'Follow the runners: '+runersStr);
+            }
+            return;
+        }
+        if (chatCommandsRep.value.hasOwnProperty(userCommandName)) {
+            var userCommand = chatCommandsRep.value[userCommandName];
             if (userCommand &&
                 userCommand.enabled &&
                 (new Date().getTime() - userCommand.lastUsed) > userCommand.cooldown) {
