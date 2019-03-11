@@ -47,6 +47,9 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 			
 			getCurrentChannelInfo();
 			nodecg.sendMessage('twitchAPIReady');
+
+			// now that the token is refreshed start the chat bot
+			require('./twitch-chat-bot');
 		});
 	}
 	
@@ -69,7 +72,6 @@ if (nodecg.bundleConfig && nodecg.bundleConfig.twitch && nodecg.bundleConfig.twi
 			needle.get('https://api.twitch.tv/kraken', requestOptions, (err, resp) => {
 				// Get user ID from Twitch, because v5 requires this for everything.
 				twitchChannelID.value = resp.body.token.user_id;
-				twitchChannelName.value = resp.body.token.user_name;
 				clearTimeout(channelInfoTimeout);
 				getCurrentChannelInfo();
 				
