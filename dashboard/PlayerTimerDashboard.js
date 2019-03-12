@@ -106,6 +106,12 @@ $(function () {
         finishFlags.value[index].hasFinished = false;
     }
 
+    function unfinishAllFlags() {
+        for(var i=0;i<4;i++) {
+            unfinishFlagForIndex(i);
+        }
+    }
+
     function updateSplitTimerTextColor(timerArray) {
         $.each(timerArray, function(index, value){
             $('#toolbar'+value.index).css('color','#0000dd');
@@ -222,6 +228,7 @@ $(function () {
         };
         $("#play").button("option", options);
         resetSplitTimes();
+        unfinishAllFlags();
     });
 
     function playerTimer_SetTime(timeHTML) {
@@ -338,9 +345,7 @@ $(function () {
             };
             $('#play').button("option", options);
         }
-        for(var i=0;i<4;i++) {
-            unfinishFlagForIndex(i);
-        }
+        unfinishAllFlags();
     }
 
     function OnStop() {
