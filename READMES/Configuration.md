@@ -51,7 +51,6 @@ Below is an example configuration file contents with everything that is availabl
 		"eventSlug":"bingothon18"
 	}
 }
-}
 ```
 
 
