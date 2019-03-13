@@ -53,6 +53,13 @@
     ],
     "dashboardPanels": [
       {
+        "name": "obs-control",
+        "title": "OBS Remote Control",
+        "file": "obs.html",
+        "width": 3,
+        "headerColor": "#008BB9"
+      },
+      {
         "name": "run-player",
         "title": "Run Player",
         "width": 3,

@@ -50,4 +50,3 @@ module.exports = function(nodecg) {
 	return {
 		twitchClientID: nodecg.bundleConfig.twitch.clientID
 	}
-}
