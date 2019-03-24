@@ -10,6 +10,7 @@ const equal = require('deep-equal');
 
 // Ours
 const SOCKET_KEY_REGEX = /temporarySocketKey\s+=\s+"(\S+)"/;
+const ALL_COLORS = ["red", "blue", "orange", "teal", "brown", "yellow", "green", "navy", "pink", "purple"];
 
 const nodecg = require('./utils/nodecg-api-context').get();
 const log = new nodecg.Logger(`${nodecg.bundleName}:bingosync`);
@@ -25,6 +26,8 @@ if (boardRep.value.goalCounts === undefined) {
 if (boardRep.value.colorShown === undefined) {
 	boardRep.value.colorShown = true;
 }
+const bingoColors = nodecg.Replicant('bingo-colors');
+const currentRunRep = nodecg.Replicant('runDataActiveRun');
 const socketRep = nodecg.Replicant('bingosocket', {'defaultValue':{'roomCode':null,'passphrase':null,'status':'disconnected'}});
 // always disconnected at startup, 
 socketRep.value.status = 'disconnected';
@@ -32,6 +35,26 @@ let fullUpdateInterval;
 let websocket = null;
 
 const noop = () => {}; // tslint:disable-line:no-empty
+
+// Prepare proper defaults for different bingo types
+currentRunRep.on('change',(newValue)=>{
+	var runnerIndex = 0;
+	for(var i = 0;i<newValue.teams.length;i++) {
+		var team = newValue.teams[i];
+		team.players.forEach(player => {
+			bingoColors.value[runnerIndex] = ALL_COLORS[i];
+			runnerIndex++;
+		});
+	}
+	if (newValue.customData.Bingotype) {
+		var bingotype = newValue.customData.Bingotype;
+		if (bingotype.startsWith("single")) {
+			boardRep.value.goalCountShown = false;
+		} else if (bingotype.startsWith("blackout")) {
+			boardRep.value.goalCountShown = true;
+		}
+	}
+});
 
 nodecg.listenFor('joinBingosyncRoom', async (data, callback) => {
 	callback = callback || noop; // tslint:disable-line:no-parameter-reassignment

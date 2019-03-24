@@ -142,13 +142,6 @@
         "workspace": "Twitch Resizing"
       },
       {
-        "name": "obs-control",
-        "title": "OBS Remote Control",
-        "file": "obs.html",
-        "width": 3,
-        "headerColor": "#008BB9"
-      },
-      {
         "name": "run-info",
         "title": "Add/Edit Run Info",
         "width": 5,
