@@ -282,15 +282,15 @@ async function startCommercial(duration?: CommercialDuration):
  * Setup done on both server boot (if token available) and initial auth flow.
  */
 async function setUp(): Promise<void> {
+  let [err, resp] = await to(validateToken());
+  if (err) {
+    await refreshToken();
+    [err, resp] = await to(validateToken());
+  }
+  if (!resp) {
+    throw new Error('No response while validating token');
+  }
   if (!config.twitch.channelName) {
-    let [err, resp] = await to(validateToken());
-    if (err) {
-      await refreshToken();
-      [err, resp] = await to(validateToken());
-    }
-    if (!resp) {
-      throw new Error('No response while validating token');
-    }
     apiData.value.channelID = resp.user_id;
     apiData.value.channelName = resp.login;
   } else {
