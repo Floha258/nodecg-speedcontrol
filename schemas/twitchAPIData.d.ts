@@ -13,4 +13,5 @@ export interface TwitchAPIData {
   channelName?: string;
   channelID?: string;
   featuredChannels: string[];
+  tokenExpiresAt?: number;
 }

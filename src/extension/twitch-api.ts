@@ -79,6 +79,7 @@ export async function refreshToken(): Promise<void> {
     nodecg.log.info('[Twitch] Successfully refreshed access token');
     apiData.value.accessToken = resp.body.access_token;
     apiData.value.refreshToken = resp.body.refresh_token;
+    apiData.value.tokenExpiresAt = Date.now() + resp.body.expires_in * 1000;
   } catch (err) {
     nodecg.log.warn('[Twitch] Error refreshing access token, you need to relogin');
     nodecg.log.debug('[Twitch] Error refreshing access token:', err);
@@ -344,6 +345,7 @@ if (config.twitch.enabled) {
     ).then((resp) => {
       apiData.value.accessToken = resp.body.access_token;
       apiData.value.refreshToken = resp.body.refresh_token;
+      apiData.value.tokenExpiresAt = Date.now() + resp.body.expires_in * 1000;
       setUp().then(() => {
         nodecg.log.info('[Twitch] Authentication successful');
         res.send('<b>Twitch authentication is now complete, '
@@ -359,6 +361,26 @@ if (config.twitch.enabled) {
   });
 
   nodecg.mount(app);
+}
+
+/**
+ * Checks if the current access token is still valid, if yes returns it.
+ * Otherwise tries to refresh the token 
+ */
+async function getOrRefreshAccessToken(): Promise<string> {
+  if (apiData.value.state !== 'on') {
+    throw new Error("API state not 'on'");
+  }
+  let [err, resp] = await to(validateToken());
+  if (err) {
+    await refreshToken();
+    [err, resp] = await to(validateToken());
+  }
+  if (!resp) {
+    throw new Error('No response while validating token');
+  }
+  nodecg.log.info('delivering access token!');
+  return apiData.value.accessToken || '';
 }
 
 // NodeCG messaging system.
@@ -379,6 +401,11 @@ nodecg.listenFor('playTwitchAd', (data, ack) => { // Legacy
 });
 nodecg.listenFor('twitchAPIRequest', (data, ack) => {
   request(data.method, data.endpoint, data.data, data.newAPI)
+    .then((resp) => processAck(ack, null, resp))
+    .catch((err) => processAck(ack, err));
+});
+nodecg.listenFor('twitchRefreshAccessToken', (data, ack) => {
+  getOrRefreshAccessToken()
     .then((resp) => processAck(ack, null, resp))
     .catch((err) => processAck(ack, err));
 });
